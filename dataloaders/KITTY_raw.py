@@ -82,15 +82,21 @@ class KITTY_raw(data.Dataset):
         transform = []
         if FLAGS.hflip:
             transform.append(transforms.RandomHorizontalFlipStereo())
-        if FLAGS.rand_crop and not self.with_gt_depth:
+        if FLAGS.rand_crop and not (self.with_gt_depth and mode == 'test'):
             transform.append(transforms.RandomScaleCropResizeStereo())
         else:
+            if FLAGS.rand_crop:
+                print('no random crop will be performed, since depth GT is used in test mode')
             transform.append(transforms.ResizeStereo())
         transform.append(transforms.ArrayToTensorStereo())
         transform.append(normalize)
         self.transform = transforms.Compose(transform)
         if self.with_gt_depth:
-            self.depth_transform = transforms.Compose([transforms.DepthFlipToTensorStereo()])
+            depth_transform = []
+            if mode == 'train':
+                depth_transform.append(transforms.DepthRandomScaleCropResizeStereo())
+            depth_transform.append(transforms.DepthFlipToTensorStereo())
+            self.depth_transform = transforms.Compose(depth_transform)
 
         assert os.path.isfile(self.root / 'test_files_eigen.txt')
         with open(self.root / 'test_files_eigen.txt', 'r') as f:
@@ -113,10 +119,20 @@ class KITTY_raw(data.Dataset):
         intrinsics_r = np.copy(sample['intrinsics_r'])
         filename_tgt = sample['tgt_img_l']
         if self.with_gt_depth:
-            gt_depth_l = generate_depth_map(sample['calib_dir'], sample['gt_trg_depth'], tgt_img_l.shape[:2], cam=2)
-            print('gt_depth_l nonzero = ', np.count_nonzero(gt_depth_l), 'gt_depth_l nonzero = ', np.count_nonzero(gt_depth_l==0))
+            # filling with zeros absent pixels in depth map (left corner)
+            gt_depth_l_tmp = generate_depth_map(sample['calib_dir'], sample['gt_trg_depth'], tgt_img_l.shape[:2], cam=2,
+                                            odom=True)[:self.depth_h, :self.depth_w]
+            gt_depth_l = np.zeros((self.depth_h, self.depth_w))
+            h_min = self.depth_h - gt_depth_l_tmp.shape[0]
+            w_min = self.depth_w - gt_depth_l_tmp.shape[1]
+            gt_depth_l[h_min:, w_min:] = gt_depth_l_tmp
             if self.stereo:
-                gt_depth_r = generate_depth_map(sample['calib_dir'], sample['gt_trg_depth'], tgt_img_l.shape[:2], cam=3)
+                gt_depth_r_tmp = generate_depth_map(sample['calib_dir'], sample['gt_trg_depth'], tgt_img_l.shape[:2], cam=3,
+                                                odom=True)[:self.depth_h, :self.depth_w]
+                gt_depth_r = np.zeros((self.depth_h, self.depth_w))
+                h_min = self.depth_h - gt_depth_r_tmp.shape[0]
+                w_min = self.depth_w - gt_depth_r_tmp.shape[1]
+                gt_depth_r[h_min:, w_min:] = gt_depth_r_tmp
         baseline = sample['baseline']
         images = [tgt_img_l]
         intrinsics = [intrinsics_l]
@@ -133,8 +149,7 @@ class KITTY_raw(data.Dataset):
                 images.append(img)
 
         # transform
-        flip = False
-        args = [intrinsics, self.stereo, self.height, self.width, flip]
+        args = [intrinsics, self.stereo, self.height, self.width, [0]*9]
         images_out, args_out = self.transform(images, args)
         intrinsics_l = args_out[0][0]
         if self.stereo and tgt_img_r is not None:

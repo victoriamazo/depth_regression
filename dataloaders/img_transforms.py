@@ -231,10 +231,11 @@ class RandomHorizontalFlipStereo(object):
          - correspondingly changed list of intrinsics matrices
     '''
     def __call__(self, images, args):
-        intrinsics, stereo, _, _, _ = args
+        intrinsics, stereo, _, _, transf_params = args
         assert stereo is not None
         assert len(intrinsics) > 0
         flip = False
+
         if random.random() < 0.5:
             flip = True
             output_intrinsics = np.copy(intrinsics)
@@ -250,7 +251,8 @@ class RandomHorizontalFlipStereo(object):
         else:
             output_images = images
             output_intrinsics = intrinsics
-        args_out = [output_intrinsics, args[1], args[2], args[3], flip]
+        transf_params_out = transf_params[:-1] + [flip]
+        args_out = [output_intrinsics, args[1], args[2], args[3], transf_params_out]
         return output_images, args_out
 
 
@@ -268,12 +270,14 @@ class RandomScaleCropResizeStereo(object):
          - correspondingly changed list of intrinsics matrices
     '''
     def __call__(self, images, args):
-        intrinsics, _, resize_h, resize_w, _ = args
+        intrinsics, _, resize_h, resize_w, transf_params = args
         assert resize_h is not None
         assert resize_w is not None
         assert intrinsics is not None
         output_intrinsics = np.copy(intrinsics)
         in_h, in_w, _ = images[0].shape
+        resize, crop = True, True
+        flip = transf_params[-1]
 
         if resize_h < in_h and resize_w < in_w:
             offset_y = int(resize_h * np.random.uniform(1.0, 1.15) - resize_h)
@@ -294,6 +298,8 @@ class RandomScaleCropResizeStereo(object):
             cropped_images = [im[offset_y:offset_y + resize_h, offset_x:offset_x + resize_w] for im in scaled_images]
             # im2 = Image.fromarray(((cropped_images[-1] / 80) * 255).astype('uint8'))
             # im2.show()
+            transf_params_out = [resize, scaled_h, scaled_w, crop, offset_y, offset_y + resize_h, offset_x,
+                                 offset_x + resize_w, flip]
         else:
             # scale
             x_scaling, y_scaling = np.random.uniform(1, 1.15, 2)
@@ -304,6 +310,8 @@ class RandomScaleCropResizeStereo(object):
             offset_y = np.random.randint(scaled_h - in_h + 1)
             offset_x = np.random.randint(scaled_w - in_w + 1)
             cropped_images = [im[offset_y:offset_y + in_h, offset_x:offset_x + in_w] for im in scaled_images]
+            transf_params_out = [resize, scaled_h, scaled_w, crop, offset_y, offset_y + in_h, offset_x, offset_x + in_w,
+                                 flip]
 
         for i in range(len(output_intrinsics)):
             output_intrinsics[i][0] *= x_scaling
@@ -311,12 +319,12 @@ class RandomScaleCropResizeStereo(object):
             output_intrinsics[i][0, 2] -= offset_x
             output_intrinsics[i][1, 2] -= offset_y
 
-        args_out = [output_intrinsics, args[1], args[2], args[3], args[-1]]
-        imsave('/home/victoria/Dropbox/Neural_Networks/Projects/2017.10_PoseEst_pt/utils/debug/tgt.jpg', images[-1])
-        imsave('/home/victoria/Dropbox/Neural_Networks/Projects/2017.10_PoseEst_pt/utils/debug/tgt_scaled.jpg',
-               scaled_images[-1])
-        imsave('/home/victoria/Dropbox/Neural_Networks/Projects/2017.10_PoseEst_pt/utils/debug/tgt_cropped.jpg',
-               cropped_images[-1])
+        args_out = [output_intrinsics, args[1], args[2], args[3], transf_params_out]
+        # imsave('/home/victoria/Dropbox/Neural_Networks/Projects/2017.10_PoseEst_pt/utils/debug/tgt.jpg', images[-1])
+        # imsave('/home/victoria/Dropbox/Neural_Networks/Projects/2017.10_PoseEst_pt/utils/debug/tgt_scaled.jpg',
+        #        scaled_images[-1])
+        # imsave('/home/victoria/Dropbox/Neural_Networks/Projects/2017.10_PoseEst_pt/utils/debug/tgt_cropped.jpg',
+        #        cropped_images[-1])
         return cropped_images, args_out
 
 
@@ -331,13 +339,16 @@ class ResizeStereo(object):
          - unchanged intrinsics matrices
     '''
     def __call__(self, images, args):
-        intrinsics, _, resize_h, resize_w, _ = args
+        intrinsics, _, resize_h, resize_w, transf_params = args
         assert resize_h is not None
         assert resize_w is not None
         in_h, in_w, _ = images[0].shape
+        flip = transf_params[-1]
 
         if resize_h < in_h and resize_w < in_w:
             resized_images = [imresize(im, (resize_h, resize_w)) for im in images]
+            resize, crop = True, False
+            transf_params_out = [resize, resize_h, resize_w, crop, 0, 0, 0, 0, flip]
 
             y_scaling, x_scaling = resize_h / in_h, resize_w / in_w
             output_intrinsics = np.copy(intrinsics)
@@ -347,7 +358,10 @@ class ResizeStereo(object):
         else:
             resized_images = images
             output_intrinsics = intrinsics
-        args_out = [output_intrinsics, args[1], args[2], args[3], args[-1]]
+            resize, crop = False, False
+            transf_params_out = [resize, 0, 0, crop, 0, 0, 0, 0, flip]
+
+        args_out = [output_intrinsics, args[1], args[2], args[3], transf_params_out]
 
         return resized_images, args_out
 
@@ -391,18 +405,56 @@ class NormalizeStereo(object):
         return images, args
 
 
+class DepthRandomScaleCropResizeStereo(object):
+    '''
+        Performs depth smoothing, resizing and cropping od depth (with the same parameters as images)
+        Input:
+        - images: list of left (and right) depth np array of shape (height, width)
+        Output:
+         - list of left (and right) depth np array, maybe resized and/or cropped
+         - unchanged list of args
+    '''
+    def __call__(self, images, args):
+        transf_params = args[-1]
+        resize, resize_h, resize_w, crop, offset_y_min, offset_y_max, offset_x_min, offset_x_max, _ = transf_params
+
+        # depth smoothing
+        output_images = [ndimage.filters.maximum_filter(im, (5, 5)) for im in images]
+
+        # resize
+        if resize:
+            output_images = [imresize(im, (resize_h, resize_w)) for im in output_images]
+        else:
+            output_images = images
+
+        # crop
+        if crop:
+            output_images = [im[offset_y_min: offset_y_max, offset_x_min: offset_x_max] for im in output_images]
+        else:
+            output_images = images
+
+        smooth_lidar_image = Image.fromarray(((output_images[0] / 80) * 255).astype('uint8'))
+        smooth_lidar_image.show()
+
+        im1 = Image.fromarray(((images[0] / 80) * 255).astype('uint8'))
+        im1.show()
+
+        return output_images, args
+
+
 class DepthFlipToTensorStereo(object):
     '''
         Input:
         - images: list of left (and right) depth np array of shape (height, width)
-        - args[4] is flip (true or false)
         Output:
-         - list of torch.FloatTensor of shape (H x W)
+         - list of depth torch.FloatTensor of shape (H x W)
          - unchanged list of args
     '''
     def __call__(self, images, args):
+        transf_params = args[-1]
+        flip = transf_params[-1]
+
         # flip
-        flip = args[-1]
         if flip:
             output_images = [np.copy(np.fliplr(im)) for im in images]
         else:
@@ -426,8 +478,6 @@ class DepthFlipToTensorStereo(object):
             # handle numpy array
             tensors.append(torch.from_numpy(im).float())
         return tensors, args
-
-
 
 
 

@@ -100,17 +100,21 @@ class KITTY_odom(data.Dataset):
         transform = []
         if FLAGS.hflip:
             transform.append(transforms.RandomHorizontalFlipStereo())
-        if FLAGS.rand_crop and not self.with_gt_depth:
+        if FLAGS.rand_crop and not (self.with_gt_depth and mode == 'test'):
             transform.append(transforms.RandomScaleCropResizeStereo())
         else:
             if FLAGS.rand_crop:
-                print('no random crop will be performed, since depth GT is used')
+                print('no random crop will be performed, since depth GT is used in test mode')
             transform.append(transforms.ResizeStereo())
         transform.append(transforms.ArrayToTensorStereo())
         transform.append(normalize)
         self.transform = transforms.Compose(transform)
         if self.with_gt_depth:
-            self.depth_transform = transforms.Compose([transforms.DepthFlipToTensorStereo()])
+            depth_transform = []
+            if mode == 'train':
+                depth_transform.append(transforms.DepthRandomScaleCropResizeStereo())
+            depth_transform.append(transforms.DepthFlipToTensorStereo())
+            self.depth_transform = transforms.Compose(depth_transform)
 
         self.samples = self._crawl_folders()
 
@@ -132,12 +136,6 @@ class KITTY_odom(data.Dataset):
             h_min = self.depth_h - gt_depth_l_tmp.shape[0]
             w_min = self.depth_w - gt_depth_l_tmp.shape[1]
             gt_depth_l[h_min:, w_min:] = gt_depth_l_tmp
-            # print('gt_depth_l nonzero = ', np.count_nonzero(gt_depth_l), 'gt_depth_l nonzero = ', np.count_nonzero(gt_depth_l==0))
-            # from PIL import Image
-            # im1 = Image.fromarray(((tgt_img_l / tgt_img_l.max()) * 255).astype('uint8'))
-            # im1.show()
-            # im1 = Image.fromarray(((gt_depth_l / 80) * 255).astype('uint8'))
-            # im1.show()
             if self.stereo:
                 gt_depth_r_tmp = generate_depth_map(sample['calib_dir'], sample['gt_trg_depth'], tgt_img_l.shape[:2], cam=3,
                                                 odom=True)[:self.depth_h, :self.depth_w]
@@ -161,8 +159,7 @@ class KITTY_odom(data.Dataset):
                 images.append(img)
 
         # transform
-        flip = False
-        args = [intrinsics, self.stereo, self.height, self.width, flip]
+        args = [intrinsics, self.stereo, self.height, self.width, [0]*9]
         images_out, args_out = self.transform(images, args)
         intrinsics_l = args_out[0][0]
         if self.stereo and tgt_img_r is not None:
@@ -203,158 +200,6 @@ class KITTY_odom(data.Dataset):
                 var_dict_np['ref_imgs_r'] = images_out[2 + num_ref_img:2 + 2 * num_ref_img]
 
         return var_dict_np
-        # sample = self.samples[index]
-        # tgt_img_l = load_as_float(sample['tgt_img_l'])
-        # ref_imgs_l = [load_as_float(img) for img in sample['ref_imgs_l']]
-        # tgt_img_r = load_as_float(sample['tgt_img_r'])
-        # ref_imgs_r = [load_as_float(img) for img in sample['ref_imgs_r']]
-        # intrinsics_l = np.copy(sample['intrinsics_l'])
-        # intrinsics_r = np.copy(sample['intrinsics_r'])
-        # filename_tgt = sample['tgt_img_l']
-        # if self.with_gt_depth:
-        #     gt_depth_l = generate_depth_map(sample['calib_dir'], sample['gt_trg_depth'], tgt_img_l.shape[:2], cam=2,
-        #                                     odom=True)
-        #     if self.stereo:
-        #         gt_depth_r = generate_depth_map(sample['calib_dir'], sample['gt_trg_depth'], tgt_img_l.shape[:2], cam=3,
-        #                                         odom=True)
-        # baseline = sample['baseline']
-        # images = [tgt_img_l]
-        # intrinsics = [intrinsics_l]
-        # num_ref_img = 0
-        # if self.seq_length > 1 and len(ref_imgs_l) > 0:
-        #     num_ref_img = len(ref_imgs_l)
-        #     for img in ref_imgs_l:
-        #         images.append(img)
-        # if self.stereo and tgt_img_r is not None:
-        #     images.append(tgt_img_r)
-        #     intrinsics.append(intrinsics_r)
-        # if self.seq_length > 1 and len(ref_imgs_r) > 0:
-        #     for img in ref_imgs_r:
-        #         images.append(img)
-        # if self.with_gt_depth:
-        #     if self.stereo:
-        #         images.append(np.repeat(np.expand_dims(gt_depth_r, 2), 3, 2))
-        #     images.append(np.repeat(np.expand_dims(gt_depth_l, 2), 3, 2))
-        #
-        # # transform
-        # if self.transform is not None:
-        #     args = [intrinsics, self.stereo, self.height, self.width]
-        #     images_out, args_out = self.transform(images, args)
-        #     intrinsics_l = args_out[0][0]
-        #     if self.stereo and tgt_img_r is not None:
-        #         intrinsics_r = args_out[0][1]
-        #     if self.with_gt_depth:
-        #         gt_depth_l_out = images_out[-1][0]
-        #         mask_l = generate_mask(gt_depth_l) * 1
-        #         if self.stereo:
-        #             gt_depth_r_out = images_out[-2][0]
-        #             mask_r = generate_mask(gt_depth_r) * 1
-        #     # # normalize only images
-        #     # images_out, args_out = transforms.Compose([self.normalize])(images_out, args_out)
-        #     tgt_img_l = images_out[0]
-        # else:
-        #     images_out = images
-        #     if self.with_gt_depth:
-        #         gt_depth_l = images_out[-2][0]
-        #         if self.stereo:
-        #             gt_depth_r = images_out[-1][0]
-        #
-        # if self.with_gt_depth:
-        #     mask_l = generate_mask(gt_depth_l) * 1
-        #     if self.stereo:
-        #         mask_r = generate_mask(gt_depth_r) * 1
-        # var_dict_np = {'tgt_img_l': tgt_img_l, 'intrinsics_l': intrinsics_l,
-        #                'intrinsics_inv_l': np.linalg.inv(intrinsics_l), 'filename_tgt': filename_tgt}
-        # if self.with_gt_pose:
-        #     var_dict_np['gt_trg_pose'] = sample['gt_trg_pose']
-        # if self.with_gt_depth:
-        #     var_dict_np['gt_depth_l'] = gt_depth_l
-        #     var_dict_np['mask_l'] = mask_l
-        # if self.seq_length > 1:
-        #     var_dict_np['ref_imgs_l'] = images_out[1:1+num_ref_img]
-        #     var_dict_np['filename_ref'] = sample['ref_imgs_l']
-        #     if self.with_gt_pose:
-        #         var_dict_np['gt_ref_poses'] = sample['gt_ref_poses']
-        # if self.stereo:
-        #     var_dict_np['intrinsics_r'] = intrinsics_r
-        #     var_dict_np['intrinsics_inv_r'] = np.linalg.inv(intrinsics_r)
-        #     var_dict_np['baseline'] = baseline
-        #     if self.with_gt_depth:
-        #         var_dict_np['gt_depth_r'] = gt_depth_r
-        #         var_dict_np['mask_r'] = mask_r
-        #     if self.seq_length == 1:
-        #         var_dict_np['tgt_img_r'] = images_out[1]
-        #     else:
-        #         var_dict_np['tgt_img_r'] = images_out[1+num_ref_img]
-        #         var_dict_np['ref_imgs_r'] = images_out[2+num_ref_img:2+2*num_ref_img]
-        #
-        # return var_dict_np
-    # def __getitem__(self, index):
-    #     sample = self.samples[index]
-    #     tgt_img_l = load_as_float(sample['tgt_img_l'])
-    #     ref_imgs_l = [load_as_float(img) for img in sample['ref_imgs_l']]
-    #     tgt_img_r = load_as_float(sample['tgt_img_r'])
-    #     ref_imgs_r = [load_as_float(img) for img in sample['ref_imgs_r']]
-    #     intrinsics_l = np.copy(sample['intrinsics_l'])
-    #     intrinsics_r = np.copy(sample['intrinsics_r'])
-    #     filename_tgt = sample['tgt_img_l']
-    #     gt_trg_pose = sample['gt_trg_pose']
-    #     gt_ref_poses = sample['gt_ref_poses']
-    #     baseline = sample['baseline']
-    #     images = [tgt_img_l]
-    #     intrinsics = [intrinsics_l]
-    #     num_ref_img = 0
-    #     if len(ref_imgs_l) > 0:
-    #         num_ref_img = len(ref_imgs_l)
-    #         for img in ref_imgs_l:
-    #             images.append(img)
-    #     if tgt_img_r is not None:
-    #         images.append(tgt_img_r)
-    #         intrinsics.append(intrinsics_r)
-    #     if len(ref_imgs_r) > 0:
-    #         for img in ref_imgs_r:
-    #             images.append(img)
-    #
-    #     # transform
-    #     if self.transform is not None:
-    #         args = [intrinsics, self.stereo, self.height, self.width]
-    #         images_out, args_out = self.transform(images, args)
-    #         intrinsics_l = args_out[0][0]
-    #         if tgt_img_r is not None:
-    #             intrinsics_r = args_out[0][1]
-    #         tgt_img_l = images_out[0]
-    #     else:
-    #         images_out = images
-    #
-    #     # if self.seq_length == 1 and not self.stereo:
-    #     #     return [tgt_img_l, intrinsics_l, np.linalg.inv(intrinsics_l), gt_trg_pose, filename_tgt]
-    #     # if self.seq_length > 1 and not self.stereo:
-    #     #     return [tgt_img_l, images_out[1:], intrinsics_l, np.linalg.inv(intrinsics_l), gt_trg_pose, gt_ref_poses, filename_tgt, \
-    #     #            sample['ref_imgs_l']]
-    #     # if self.seq_length == 1 and self.stereo:
-    #     #     return [tgt_img_l, images_out[1], intrinsics_l, intrinsics_r, np.linalg.inv(intrinsics_l), np.linalg.inv(intrinsics_r), \
-    #     #            gt_trg_pose, filename_tgt, baseline]
-    #     # if self.seq_length > 1 and self.stereo:
-    #     #     return [tgt_img_l, images_out[1:1+num_ref_img], images_out[1+num_ref_img], images_out[1+num_ref_img+1:], intrinsics_l, \
-    #     #            intrinsics_r, np.linalg.inv(intrinsics_l), np.linalg.inv(intrinsics_r), gt_trg_pose, gt_ref_poses, \
-    #     #            filename_tgt, sample['ref_imgs_l'], baseline]
-    #     var_dict_np = {'tgt_img_l': tgt_img_l, 'intrinsics_l': intrinsics_l, 'intrinsics_inv_l': np.linalg.inv(intrinsics_l),
-    #                    'gt_trg_pose': gt_trg_pose, 'filename_tgt': filename_tgt}
-    #     if self.seq_length > 1:
-    #         var_dict_np['ref_imgs_l'] = images_out[1:1+num_ref_img]
-    #         var_dict_np['gt_ref_poses'] = gt_ref_poses
-    #         var_dict_np['filename_ref'] = sample['ref_imgs_l']
-    #     if self.stereo:
-    #         var_dict_np['intrinsics_r'] = intrinsics_r
-    #         var_dict_np['intrinsics_inv_r'] = np.linalg.inv(intrinsics_r)
-    #         var_dict_np['baseline'] = baseline
-    #         if self.seq_length == 1:
-    #             var_dict_np['tgt_img_r'] = images_out[1]
-    #         else:
-    #             var_dict_np['tgt_img_r'] = images_out[1+num_ref_img]
-    #             var_dict_np['ref_imgs_r'] = images_out[1+num_ref_img+1:]
-    #
-    #     return var_dict_np
 
 
     def __len__(self):
@@ -409,97 +254,6 @@ class KITTY_odom(data.Dataset):
                                   'gt_trg_pose': gt_trg_pose, 'gt_ref_poses': gt_ref_poses}
                         sequence_set.append(sample)
         return sequence_set
-        # for scene_path in self.sequences:
-            # # left imgs
-            # left_imgs_path = folder_path/'image_2'
-            # imgs_left = sorted(left_imgs_path.files('*.png'))
-            # intrinsics_path = folder_path / 'calib.txt'
-            # intrinsics_np, baseline_l = read_calib_file(intrinsics_path, is_left=True)
-            # intrinsics_l = intrinsics_matrix(intrinsics_np, is_kitty=True)
-            # if len(imgs_left) < self.seq_length:
-            #     continue
-            #
-            # # right imgs
-            # baseline = -1
-            # if self.stereo:
-            #     right_imgs_path = folder_path /'image_3'
-            #     imgs_right = sorted(right_imgs_path.files('*.png'))
-            #     assert len(imgs_left) == len(imgs_right), '{}: imgs_left = {}, imgs_right = {}'.format(folder_path,
-            #            len(imgs_left), len(imgs_right))
-            #     intrinsics_np, baseline_r = read_calib_file(intrinsics_path, is_left=False)
-            #     baseline = baseline_r - baseline_l
-            #     intrinsics_right = intrinsics_matrix(intrinsics_np, is_kitty=True)
-            #     if len(imgs_right) < self.seq_length:
-            #         continue
-            #
-            # # GT
-            # if self.with_gt:
-            #     pose_gt_path = folder_path / 'pose_gt.txt'
-            #     poses = read_KITTY_poses(pose_gt_path)           # dict of matrix poses of all images in a sequence
-            #     assert len(poses) == len(imgs_left)
-            #
-            # demi_length = 0
-            # max_idx = len(imgs_left) - (self.seq_length-1) - (self.skip-1)
-            # if self.seq_length > 2 and self.seq_length%2 != 0:
-            #     demi_length = (self.seq_length-1)//2
-            #     max_idx = len(imgs_left) - demi_length
-            #
-            # for i in range(demi_length, max_idx, 1):
-            #     intrinsics_r, tgt_img_r = None, None
-            #     ref_imgs_l, ref_imgs_r, gt_trg_pose, gt_ref_poses = [], [], [], []
-            #
-            #     tgt_img_l = imgs_left[i]
-            #     if self.seq_length == 2:
-            #         ref_imgs_l.append(imgs_left[i + self.skip])
-            #     elif self.seq_length > 2 and self.seq_length % 2 != 0:
-            #         for j in range(-demi_length, demi_length + 1):
-            #             if j != 0:
-            #                 ref_imgs_l.append(imgs_left[i + j])
-            #     if self.stereo:
-            #         tgt_img_r = imgs_right[i]
-            #         intrinsics_r = intrinsics_right
-            #         if self.seq_length == 2:
-            #             ref_imgs_r.append(imgs_right[i + self.skip])
-            #         elif self.seq_length > 2 and self.seq_length % 2 != 0:
-            #             for j in range(-demi_length, demi_length + 1):
-            #                 if j != 0:
-            #                     ref_imgs_r.append(imgs_right[i + j])
-            #
-            #     # with pose GT (GT is absolute position)
-            #     if self.with_gt:
-            #         # TODO: to do smth with GT:
-            #         # while doing the ATE/RE test, found out that GT from dataloader is not good (some values are
-            #         # different from the real GT), therefore I haven't used GT from dataloader for seq_length>2,
-            #         # but loaded GT from file externally during the test
-            #         # convert matrix pose into 6dof pose
-            #         trg_pose_matrix = poses[i]
-            #         rx, ry, rz = rotationMatrixToEulerAngles(trg_pose_matrix[:3, :3])
-            #         gt_trg_pose = np.array([trg_pose_matrix[0, -1], trg_pose_matrix[1, -1], trg_pose_matrix[2, -1], rx, ry, rz])   #(tx, ty, tz, rx, ry, rz)
-            #         if self.seq_length == 2:
-            #             ref_pose_matrix = poses[i + self.skip]
-            #             rx_ref, ry_ref, rz_ref = rotationMatrixToEulerAngles(ref_pose_matrix[:3, :3])
-            #             gt_ref_poses.append(np.array([ref_pose_matrix[0, -1], ref_pose_matrix[1, -1], ref_pose_matrix[2, -1],
-            #                                       rx_ref, ry_ref, rz_ref]))  # (tx, ty, tz, rx, ry, rz)
-            #             # # consistency check
-            #             # import torch
-            #             # from utils.inverse_warp import rotationMatrixToEulerAngles, pose_vec2mat
-            #             # trg_pose_matrix2 = pose_vec2mat(torch.from_numpy(tgt_pose.reshape(-1, 6)).float(), detach=False).numpy().reshape(3,4)
-            #             # print('trg_pose_matrix = ', trg_pose_matrix, '\n', 'trg_pose_matrix2 = ', trg_pose_matrix2, '\n\n')
-            #             # rx2, ry2, rz2 = rotationMatrixToEulerAngles(trg_pose_matrix2[:3, :3])
-            #             # tgt_pose2 = np.array([trg_pose_matrix2[0, -1], trg_pose_matrix2[1, -1], trg_pose_matrix2[2, -1], rx2, ry2, rz2])  # (tx, ty, tz, rx, ry, rz)
-            #             # print('tgt_pose = ', tgt_pose, '\n', 'tgt_pose2 = ', tgt_pose2, '\n\n')
-            #         elif self.seq_length > 2 and self.seq_length % 2 != 0:
-            #             for j in range(-demi_length, demi_length + 1):
-            #                 if j != 0:
-            #                     ref_pose_matrix = poses[i + j]
-            #                     rx_ref, ry_ref, rz_ref = rotationMatrixToEulerAngles(ref_pose_matrix[:3, :3])
-            #                     gt_ref_poses.append(np.array([ref_pose_matrix[0, -1], ref_pose_matrix[1, -1], ref_pose_matrix[2, -1],
-            #                                               rx_ref, ry_ref, rz_ref]))  # (tx, ty, tz, rx, ry, rz)
-            #
-            #     sample = {'intrinsics_l': intrinsics_l, 'tgt_img_l': tgt_img_l, 'ref_imgs_l': ref_imgs_l,
-            #               'intrinsics_r': intrinsics_r, 'tgt_img_r': tgt_img_r, 'ref_imgs_r': ref_imgs_r,
-            #               'gt_trg_pose': gt_trg_pose, 'gt_ref_poses': gt_ref_poses, 'baseline': baseline}
-            #     sequence_set.append(sample)
 
 
 
@@ -518,10 +272,11 @@ if __name__ == '__main__':
             self.euler_angles = True
             self.seed = 127
             self.stereo = 1
+            self.stereo_test = 1
             self.seq_length = 3
             self.with_gt_pose = 0
             self.with_gt_depth = 1
-            self.hflip = 0
+            self.hflip = 1
             self.rand_crop = 1
             self.shuffle = 1
     FLAGS = FLAGS()
@@ -533,8 +288,6 @@ if __name__ == '__main__':
           , ', hflip:', bool(FLAGS.hflip), ', rand_crop:', bool(FLAGS.rand_crop)
           , ', shuffle:', bool(FLAGS.shuffle))
 
-    # train_loader = data.DataLoader(train_set, batch_size=FLAGS.batch_size, shuffle=FLAGS.shuffle,
-    #     num_workers=multiprocessing.cpu_count()-2, pin_memory=True)
     train_loader = data.DataLoader(train_set, batch_size=FLAGS.batch_size, shuffle=FLAGS.shuffle,
                                    num_workers=int(multiprocessing.cpu_count() / 4), pin_memory=True, drop_last=True)
     epoch_size = len(train_loader)
