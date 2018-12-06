@@ -1,0 +1,49 @@
+{
+  "general": {
+    "data_dir": "/media/victoria/d/data/mnist",
+    "train_dir": "/media/victoria/d/models/mnist",
+    "data_loader": "mnist_loader",
+    "model": "mpl",
+    "metric": "accuracy_categ",
+    "height": 28,
+    "width": 28,
+    "num_classes": 10,
+    "n_hiddens": "256,256",
+    "batch_norm": 1,
+    "initialization": "xavier",
+    "num_channels": 1,
+    "seed": 117,
+    "exp_time": ""
+  },
+  "train": {
+    "version": "train_MPL",
+    "metric": "accuracy",
+    "batch_size": 200,
+    "gpus": "1",
+    "lr": 0.01,
+    "loss": "crossentropy_loss",
+    "num_epochs": 10,
+    "num_iters_for_ckpt": 100,
+    "decreasing_lr_epochs": "80,90",
+    "load_ckpt": "",
+    "keep_prob": 0.8,
+    "weight_decay": 0.0001,
+    "crop_min_h": 1.0,
+    "crop_min_w": 1.0,
+    "hflip": 0
+  },
+  "test": {
+    "version": "test_MPL",
+    "load_ckpt_iter": "",
+    "batch_size": 1,
+    "gpus": "0",
+    "sleep_time_sec": 30
+  },
+  "val": {
+    "version": "test_MPL",
+    "load_ckpt_iter": "",
+    "val": "_val",
+    "batch_size": 1,
+    "gpus": "0"
+  }
+}
