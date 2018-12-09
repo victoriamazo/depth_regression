@@ -102,7 +102,7 @@ class train_unsup(Train):
                                  'with_gt_depth': self.with_gt_depth, 'rotation_mode': self.rotation_mode,
                                  'disp_norm': self.disp_norm, 'upscaling': self.upscaling,
                                  'edge_aware': self.edge_aware, 'concat_LR': self.concat_LR,
-                                 'max_depth': self.max_depth}
+                                 'max_depth': self.max_depth, 'mode': 'train'}
 
         # dataloader
         self.dataloader, self.num_samples = DataLoader.dataloader_builder(FLAGS.data_loader, FLAGS, 'train',
@@ -156,51 +156,6 @@ class train_unsup(Train):
                         self.num_iters_for_print, self.loss_full_path, self.train_iters_dict, self.n_epoch,
                         self.rotation_mode, self.debug)
 
-            # # convert input to pytorch tensors
-            # tgt_img_r_var, T_LR_var, ref_imgs_r_cpu, ref_imgs_r_var, intrinsics_r_var, intrinsics_r_inv_var, disp_r, \
-            # depth_r = None, None, None, None, None, None, None, None
-            # if self.stereo:
-            #     tgt_img_l_cpu, tgt_img_l_var, ref_imgs_l_cpu, ref_imgs_l_var, tgt_img_r_var, ref_imgs_r_cpu, \
-            #     ref_imgs_r_var, intrinsics_l_var, intrinsics_r_var, intrinsics_l_inv_var, intrinsics_r_inv_var, gt_trg_pose, \
-            #     gt_ref_poses, filenames_tgt, filenames_ref, T_LR_var = convert_to_tensors(var_list, filenames_tgt,
-            #                                         filenames_ref, self.batch_size, self.stereo, use_cuda, test=False)
-            # else:
-            #     tgt_img_l_cpu, tgt_img_l_var, ref_imgs_l_cpu, ref_imgs_l_var, intrinsics_l_var, intrinsics_l_inv_var, \
-            #     gt_trg_pose, gt_ref_poses, filenames_tgt, filenames_ref = convert_to_tensors(var_list, filenames_tgt,
-            #                                         filenames_ref, self.batch_size, self.stereo, use_cuda, test=False)
-            #
-            # # compute output
-            # disp_input = tgt_img_l_var
-            # if self.stereo and self.concat_LR:
-            #     disp_input = torch.cat((tgt_img_l_var, tgt_img_r_var), 1)
-            # disp = disp_net(disp_input)
-            # disp_l = [d[:, :1, :, :] for d in disp]
-            # depth_l = [1 / d for d in disp_l]
-            # if self.stereo and self.concat_LR:
-            #     disp_r = [d[:, 1:, :, :] for d in disp]
-            # if self.stereo and not self.concat_LR and (('w_RL' in self.loss_weights_dict and self.loss_weights_dict['w_RL'] > 0) or
-            #                             ('w_DC' in self.loss_weights_dict and self.loss_weights_dict['w_DC'] > 0)):
-            #     disp_r = disp_net(tgt_img_r_var)
-            #
-            # explainability_mask, pose = pose_exp_net(tgt_img_l_var, ref_imgs_l_var)     # pose [B, (tx, ty, tz, rx, ry, rz)]
-            #
-            # # compute loss
-            # losses_list, loss_names = compute_loss(tgt_img_l_var, ref_imgs_l_var, tgt_img_r_var, intrinsics_l_var,
-            #                                     intrinsics_l_inv_var, disp_l, disp_r, self.loss_weights_dict,
-            #                                     self.loss_dict, explainability_mask, pose, T_LR_var, ref_imgs_r_cpu,
-            #                                     ref_imgs_r_var, intrinsics_r_var, intrinsics_r_inv_var, self.stereo,
-            #                                     self.with_gt, rotation_mode=self.rotation_mode, disp_norm=self.disp_norm,
-            #                                     upscaling=self.upscaling, edge_aware=self.edge_aware)
-            # loss = losses_list[0]
-            # losses.update(loss.data[0], self.batch_size)
-            #
-            # # save losses and ckpt
-            # if i > 0 and self.n_iter % self.num_iters_for_print == 0:
-            #     # save train losses to tensorboard and csv
-            #     self.train_iters_dict = save_train_losses_and_imgs_to_tensorboard_and_csv(self.writer, losses_list,
-            #             loss_names, tgt_img_l_cpu, tgt_img_l_var, ref_imgs_l_cpu, ref_imgs_l_var, disp_l, depth_l, pose,
-            #             intrinsics_l_var, intrinsics_l_inv_var, explainability_mask, self.n_iter, self.num_iters_for_print,
-            #             self.loss_full_path, self.train_iters_dict, self.n_epoch, self.rotation_mode, self.debug)
             if i > 0 and self.n_iter % self.num_iters_for_ckpt == 0:
                 # save test losses to tensorboard and results_table.csv
                 self.test_iters_dict = save_test_losses_to_tensorboard(self.test_iters_dict, self.results_table_path,

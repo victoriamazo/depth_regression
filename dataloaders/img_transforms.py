@@ -433,11 +433,11 @@ class DepthRandomScaleCropResizeStereo(object):
         else:
             output_images = images
 
-        smooth_lidar_image = Image.fromarray(((output_images[0] / 80) * 255).astype('uint8'))
-        smooth_lidar_image.show()
-
-        im1 = Image.fromarray(((images[0] / 80) * 255).astype('uint8'))
-        im1.show()
+        # smooth_lidar_image = Image.fromarray(((output_images[0] / 80) * 255).astype('uint8'))
+        # smooth_lidar_image.show()
+        #
+        # im1 = Image.fromarray(((images[0] / 80) * 255).astype('uint8'))
+        # im1.show()
 
         return output_images, args
 

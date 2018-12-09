@@ -13,11 +13,13 @@ import torch.nn as nn
 from path import Path
 from scipy.misc import imread
 from wand.image import Image
-from torch.autograd import Variable
+from shutil import copyfile
 
 from models.model_builder import Model
 from utils.inverse_warp import pose_vec2mat, quat2euler_arr, inverse_warp
 from utils.visualization import save_concat_imgs
+
+from torch.autograd import Variable
 
 
 def convert_pdf2jpg(root_dir, n_iter, suffix='no', sequence='09'):
@@ -886,7 +888,13 @@ def load_model_and_weights(load_ckpt, load_ckpt_disp, FLAGS, debug, use_cuda,  w
         pose_model_path = os.path.join(ckpts_dir, 'exp_pose_ckpt.pth.tar')
     n_iter, n_epoch, train_iter_disp, train_iter_poseexp = 0, 0, 0, 0
     if os.path.isfile(pose_model_path) and os.path.isfile(disp_model_path):
-        pose_ckpt_dict = torch.load(pose_model_path)
+        pose_model_path = Path(pose_model_path)
+        ckpt_dir = pose_model_path.dirname()
+        pose_model_path_tmp = ckpt_dir / 'exp_pose_ckpt_tmp.pth.tar'
+        disp_model_path_tmp = ckpt_dir / 'dispnet_ckpt_tmp.pth.tar'
+        copyfile(pose_model_path, pose_model_path_tmp)
+        copyfile(disp_model_path, disp_model_path_tmp)
+        pose_ckpt_dict = torch.load(pose_model_path_tmp)
         if 'iteration' in pose_ckpt_dict:
             train_iter_poseexp = pose_ckpt_dict['iteration']
         if 'epoch' in pose_ckpt_dict:
@@ -897,13 +905,15 @@ def load_model_and_weights(load_ckpt, load_ckpt_disp, FLAGS, debug, use_cuda,  w
         seq_length = int(pose_ckpt_dict['state_dict']['conv1.0.weight'].size(1) / 3)
         assert seq_length == FLAGS.seq_length, 'seq_length in config file is different from the loaded model'
 
-        disp_ckpt_dict = torch.load(disp_model_path)
+        disp_ckpt_dict = torch.load(disp_model_path_tmp)
         if 'iteration' in disp_ckpt_dict:
             train_iter_disp = disp_ckpt_dict['iteration']
         assert isinstance(disp_ckpt_dict['state_dict'], (dict, OrderedDict)), type(disp_ckpt_dict['state_dict'])
         disp_net.load_state_dict(disp_ckpt_dict['state_dict'], strict=False)
         # assert train_iter_poseexp == train_iter_disp, 'iterations in posenet and dispnet are different'
         models_loaded = True
+        os.remove(pose_model_path_tmp)
+        os.remove(disp_model_path_tmp)
 
         if train:
             print('PoseExpNet training resumed from the ckpt {} (epoch {}, iter {})'.format(pose_model_path, epoch, train_iter_poseexp))

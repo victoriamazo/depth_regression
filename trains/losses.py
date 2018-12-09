@@ -54,9 +54,11 @@ def compute_loss(var_dict_t, disp_l, disp_r, explainability_mask, pose, loss_wei
                                                      loss_params_dict['upscaling'], loss_params_dict['disp_norm'])
 
     # depth supervised loss
-    if 'loss_DS' in loss_dict:
+    if 'loss_DS' in loss_dict and loss_params_dict['mode'] == 'train':
         assert loss_params_dict['with_gt_depth']
         loss_dict['loss_DS'] = disp_supervised_loss(disp_l[0], var_dict_t['gt_depth_l'], loss_params_dict)
+    elif 'loss_DS' in loss_dict:
+        del loss_dict['loss_DS']
 
     if loss_params_dict['stereo']:
         # LR photometric loss
@@ -642,9 +644,9 @@ def disp_consistency_loss(disp_l, disp_r, img_size, upscaling=False, disp_norm=F
 def disp_supervised_loss(disp, gt_depth, loss_params_dict):
     '''Input:
          - disp (B,1,in_h,in_w) (tensor) - depth from the finest layer (at the same resolution as the input image)
-         - gt_depth (B,h,w) (tensor) - GT depth at the original resolution (high)'''
-    if len(disp.size()) < 4:
-        disp = disp.unsqueeze(0)
+         - gt_depth (B,h,w) (tensor) - GT depth at the same resolution as disp'''
+    disp = torch.squeeze(disp)
+    assert disp.size() == gt_depth.size()
     b, h, w = gt_depth.size()
     gt_depth = gt_depth.cuda()
 
@@ -657,14 +659,13 @@ def disp_supervised_loss(disp, gt_depth, loss_params_dict):
     else:
         normalized_disp = disp
 
-    pred_depth_zoomed = torch.nn.functional.upsample(normalized_disp, (h, w), mode='bilinear')
-    pred_depth_zoomed = torch.clamp(pred_depth_zoomed, 1e-3, loss_params_dict['max_depth'])[:, 0]
+    normalized_disp = torch.clamp(normalized_disp, 1e-3, loss_params_dict['max_depth'])
     mask = generate_mask_tensor(gt_depth, max_depth=loss_params_dict['max_depth'])
-    pred_depth_zoomed = torch.masked_select(pred_depth_zoomed, mask)
+    normalized_disp = torch.masked_select(normalized_disp, mask)
     gt_depth = torch.masked_select(gt_depth, mask)
 
     # reversed Huber loss
-    x = torch.abs(pred_depth_zoomed - gt_depth)
+    x = torch.abs(normalized_disp - gt_depth)
     c = 0.2 * torch.max(x)
     DS_loss_L1 = torch.masked_select(x, x <= c)
     DS_loss_L2 = torch.masked_select(x, x > c)

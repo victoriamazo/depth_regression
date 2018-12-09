@@ -90,7 +90,7 @@ class test_depth_pose(Test):
                                  'with_gt_depth': self.with_gt_depth, 'rotation_mode': self.rotation_mode,
                                  'disp_norm': self.disp_norm, 'upscaling': self.upscaling,
                                  'edge_aware': self.edge_aware, 'concat_LR': self.concat_LR,
-                                 'max_depth': self.max_depth}
+                                 'max_depth': self.max_depth, 'mode': 'test'}
         # dataloader
         self.dataloader, self.num_samples = DataLoader.dataloader_builder(FLAGS.data_loader, FLAGS, 'test',
                                                                      parent_class=data.Dataset)
