@@ -499,17 +499,6 @@ def sub2ind(matrixSize, rowSub, colSub):
 def generate_depth_map(calib_dir, velo_file_name, im_shape, cam=2, odom=False):
     # load calibration files
     if odom:
-        # calib_dir1 = Path('/media/victoria/d/data/KITTI_raw/2011_09_26')
-        # cam2cam1 = read_calib_file_kitty(calib_dir1 / 'calib_cam_to_cam.txt')
-        # velo2cam1 = read_calib_file_kitty(calib_dir1 / 'calib_velo_to_cam.txt')
-        # velo2cam1 = np.hstack((velo2cam1['R'].reshape(3, 3), velo2cam1['T'][..., np.newaxis]))
-        # velo2cam1 = np.vstack((velo2cam1, np.array([0, 0, 0, 1.0])))
-        #
-        # # compute projection matrix velodyne->image plane
-        # R_cam2rect1 = np.eye(4)
-        # R_cam2rect1[:3, :3] = cam2cam1['R_rect_00'].reshape(3, 3)
-        # P_rect1 = cam2cam1['P_rect_0' + str(2)].reshape(3, 4)
-        # P_velo2im1 = np.dot(np.dot(P_rect1, R_cam2rect1), velo2cam1)
         calib_data = read_calib_file_kitty(calib_dir / 'calib.txt')
         R_cam2rect = np.eye(4)
         # in KITTY_odom R_rect_00 is absent in the calib file, therefor took it from KITTI_raw/2011_09_26/calib_cam_to_cam.txt
@@ -517,18 +506,12 @@ def generate_depth_map(calib_dir, velo_file_name, im_shape, cam=2, odom=False):
                                        -4.278459e-03, 7.402527e-03, 4.351614e-03, 9.999631e-01]).reshape(3, 3)
         P_rect_20 = np.reshape(calib_data['P2'], (3, 4))
         P_rect_30 = np.reshape(calib_data['P3'], (3, 4))
-        # T2 = np.eye(4)
-        # T2[0, 3] = P_rect_20[0, 3] / P_rect_20[0, 0]
-        # T3 = np.eye(4)
-        # T3[0, 3] = P_rect_30[0, 3] / P_rect_30[0, 0]
         velo2cam = np.reshape(calib_data['Tr'], (3, 4))
         velo2cam = np.vstack([velo2cam, [0, 0, 0, 1]])
         if cam == 2:
             P_velo2im = np.dot(np.dot(P_rect_20, R_cam2rect), velo2cam)
-            # P_velo2im = T2.dot(T_cam0_velo)
         elif cam == 3:
             P_velo2im = np.dot(np.dot(P_rect_30, R_cam2rect), velo2cam)
-            # P_velo2im = T3.dot(T_cam0_velo)
     else:
         calib_dir = '/media/victoria/d/data/KITTI_raw/2011_09_26'
         cam2cam = read_calib_file_kitty(calib_dir / 'calib_cam_to_cam.txt')
@@ -593,21 +576,15 @@ def generate_mask(gt_depth, min_depth=1e-3, max_depth=100):
 def generate_mask_tensor(gt_depth, min_depth=1e-3, max_depth=100):
     '''for a batch of frames
         - gt_depth (B,h,w) (np array) '''
-    mask = ((gt_depth > min_depth) * (gt_depth < max_depth)).type(torch.cuda.ByteTensor)  #.type(torch.FloatTensor)
+    mask = ((gt_depth > min_depth) * (gt_depth < max_depth)).type(torch.cuda.ByteTensor)
     _, h, w = gt_depth.size()
-    # crop = np.array([0.40810811 * h, 0.99189189 * h, 0.03594771 * w, 0.96405229 * w]).astype(np.int32)
-    # crop = torch.cuda.FloatTensor([0.40810811 * h, 0.99189189 * h, 0.03594771 * w, 0.96405229 * w])
-    # crop_mask = np.zeros(mask.size())
     crop_mask = torch.zeros(mask.size())
-    # crop_mask[crop[0]:crop[1], crop[2]:crop[3]] = 1
     crop0 = int(0.40810811 * h)
     crop1 = int(0.99189189 * h)
     crop2 = int(0.03594771 * w)
     crop3 = int(0.96405229 * w)
     crop_mask[:, crop0:crop1, crop2:crop3] = 1
     crop_mask = crop_mask.type(torch.cuda.ByteTensor)
-    # crop_mask[:, crop[0]:crop[1], crop[2]:crop[3]] = 1
-    # crop_mask_t = torch.from_numpy(crop_mask).type(torch.FloatTensor)
     mask = (mask * Variable(crop_mask, volatile=False)).type(torch.cuda.ByteTensor)
     return mask
 
@@ -861,8 +838,8 @@ def save_mat_pose_to_file(gt_poses, results_dir, sequence):
     np.savetxt(pose_file, gt_poses, delimiter=' ')
 
 
-def load_model_and_weights(load_ckpt, load_ckpt_disp, FLAGS, debug, use_cuda,  writer=None, loss_summary_path=None,
-                loss_full_path=None, loss_dict=None, ckpts_dir=None, dispnet='DispNetS', posenet='PoseExpNet', train=True):
+def load_model_and_weights(load_ckpt, load_ckpt_disp, FLAGS, use_cuda, ckpts_dir=None, dispnet='DispNetS',
+                           posenet='PoseExpNet', train=True):
     # load models
     disp_net = Model.model_builder(dispnet, FLAGS)
     pose_exp_net = Model.model_builder(posenet, FLAGS)

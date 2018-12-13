@@ -3,6 +3,7 @@ import numpy as np
 from path import Path
 import random
 import os
+from PIL import Image
 
 import dataloaders.img_transforms as transforms
 from utils.auxiliary import load_as_float, read_calib_file, intrinsics_matrix, generate_depth_map, \
@@ -128,21 +129,28 @@ class KITTY_odom(data.Dataset):
         intrinsics_l = np.copy(sample['intrinsics_l'])
         intrinsics_r = np.copy(sample['intrinsics_r'])
         filename_tgt = sample['tgt_img_l']
+        # loading dense depth
         if self.with_gt_depth:
-            # filling with zeros absent pixels in depth map (left corner)
-            gt_depth_l_tmp = generate_depth_map(sample['calib_dir'], sample['gt_trg_depth'], tgt_img_l.shape[:2], cam=2,
-                                            odom=True)[:self.depth_h, :self.depth_w]
-            gt_depth_l = np.zeros((self.depth_h, self.depth_w))
-            h_min = self.depth_h - gt_depth_l_tmp.shape[0]
-            w_min = self.depth_w - gt_depth_l_tmp.shape[1]
-            gt_depth_l[h_min:, w_min:] = gt_depth_l_tmp
+            gt_depth_l_im = Image.open(sample['gt_trg_depth'])
+            gt_depth_l = np.array(gt_depth_l_im)/255.
+            # Image.fromarray(gt_depth_l).show()
             if self.stereo:
-                gt_depth_r_tmp = generate_depth_map(sample['calib_dir'], sample['gt_trg_depth'], tgt_img_l.shape[:2], cam=3,
-                                                odom=True)[:self.depth_h, :self.depth_w]
-                gt_depth_r = np.zeros((self.depth_h, self.depth_w))
-                h_min = self.depth_h - gt_depth_r_tmp.shape[0]
-                w_min = self.depth_w - gt_depth_r_tmp.shape[1]
-                gt_depth_r[h_min:, w_min:] = gt_depth_r_tmp
+                gt_depth_r = np.zeros_like(gt_depth_l)
+            ## loading sparse depth
+            # # filling with zeros absent pixels in depth map (left corner)
+            # gt_depth_l_tmp = generate_depth_map(sample['calib_dir'], sample['gt_trg_depth'], tgt_img_l.shape[:2], cam=2,
+            #                                 odom=True)[:self.depth_h, :self.depth_w]
+            # gt_depth_l = np.zeros((self.depth_h, self.depth_w))
+            # h_min = self.depth_h - gt_depth_l_tmp.shape[0]
+            # w_min = self.depth_w - gt_depth_l_tmp.shape[1]
+            # gt_depth_l[h_min:, w_min:] = gt_depth_l_tmp
+            # if self.stereo:
+            #     gt_depth_r_tmp = generate_depth_map(sample['calib_dir'], sample['gt_trg_depth'], tgt_img_l.shape[:2], cam=3,
+            #                                     odom=True)[:self.depth_h, :self.depth_w]
+            #     gt_depth_r = np.zeros((self.depth_h, self.depth_w))
+            #     h_min = self.depth_h - gt_depth_r_tmp.shape[0]
+            #     w_min = self.depth_w - gt_depth_r_tmp.shape[1]
+            #     gt_depth_r[h_min:, w_min:] = gt_depth_r_tmp
         baseline = sample['baseline']
         images = [tgt_img_l]
         intrinsics = [intrinsics_l]
@@ -240,7 +248,8 @@ class KITTY_odom(data.Dataset):
                     ref_imgs_r_path = [
                         tgt_img_r_path.dirname() / '{:06d}.png'.format(index + shift) for
                         shift in shift_range]
-                    vel_path = self.vel_root / sequence / 'velodyne' / '{:06d}.bin'.format(index)
+                    # vel_path = self.vel_root / sequence / 'velodyne' / '{:06d}.bin'.format(index)
+                    vel_path = self.vel_root / sequence / 'velodyne_png' / '{:06d}.png'.format(index)
                     gt_trg_pose, gt_ref_poses = [], []
                     if self.with_gt_pose:
                         gt_trg_pose = gt_poses[index]

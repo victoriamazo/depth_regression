@@ -6,7 +6,7 @@ from torch import nn
 from torch.autograd import Variable
 
 
-def compute_loss(var_dict_t, disp_l, disp_r, explainability_mask, pose, loss_weights_dict, loss_dict, loss_params_dict):
+def compute_loss(var_dict_t, disp_l, depth_l, disp_r, explainability_mask, pose, loss_weights_dict, loss_dict, loss_params_dict):
     '''
     :param var_dict_t: dictionary of all variables (pytorch tensors)
     :param disp_l: predicted left disparity
@@ -54,9 +54,8 @@ def compute_loss(var_dict_t, disp_l, disp_r, explainability_mask, pose, loss_wei
                                                      loss_params_dict['upscaling'], loss_params_dict['disp_norm'])
 
     # depth supervised loss
-    if 'loss_DS' in loss_dict and loss_params_dict['mode'] == 'train':
-        assert loss_params_dict['with_gt_depth']
-        loss_dict['loss_DS'] = disp_supervised_loss(disp_l[0], var_dict_t['gt_depth_l'], loss_params_dict)
+    if 'loss_DS' in loss_dict and loss_params_dict['mode'] == 'train' and loss_params_dict['with_gt_depth']:
+        loss_dict['loss_DS'] = depth_supervised_loss(depth_l[0], var_dict_t['gt_depth_l'], loss_params_dict)
     elif 'loss_DS' in loss_dict:
         del loss_dict['loss_DS']
 
@@ -107,90 +106,6 @@ def compute_loss(var_dict_t, disp_l, disp_r, explainability_mask, pose, loss_wei
     losses_list[0] = loss                 # total loss
 
     return losses_list, loss_names
-
-# def compute_loss(tgt_img_l_var, ref_imgs_l_var, tgt_img_r_var, intrinsics_l_var, intrinsics_l_inv_var,
-#                  disp_l, disp_r, loss_weights_dict, loss_dict, explainability_mask, pose, T_LR_var, ref_imgs_r_cpu,
-#                  ref_imgs_r_var, intrinsics_r_var, intrinsics_r_inv_var, stereo, with_gt, rotation_mode='euler',
-#                  disp_norm=False, upscaling=False, edge_aware=False):
-#
-#     # temporal photometric loss
-#     if 'loss_12' in loss_dict:
-#         ssim = False
-#         if 'loss_12S' in loss_dict:
-#             ssim = True
-#         loss_dict['loss_12'], SSIM_loss = photometric_reconstruction_loss(tgt_img_l_var, ref_imgs_l_var,
-#                                     intrinsics_l_var, intrinsics_l_inv_var, disp_l, explainability_mask, pose,
-#                                     rotation_mode=rotation_mode, ssim=ssim, disp_norm=disp_norm, upscaling=upscaling)
-#         # temporal SSIM loss
-#         if 'loss_12S' in loss_dict:
-#             loss_dict['loss_12S'] = SSIM_loss
-#
-#     # temporal explainability loss
-#     if 'loss_E' in loss_dict:
-#         loss_dict['loss_E'] = explainability_loss(explainability_mask)
-#
-#     # left disparity smoothing loss
-#     if 'loss_S' in loss_dict:
-#         loss_dict['loss_S'] = smooth_loss(disp_l, tgt_img_l_var, edge_aware=edge_aware, disp_norm=disp_norm,
-#                                           upscaling=upscaling)
-#
-#     if stereo:
-#         # LR photometric loss
-#         if 'loss_LR' in loss_dict:
-#             ssim = False
-#             if 'loss_LRS' in loss_dict:
-#                 ssim = True
-#             loss_dict['loss_LR'], SSIM_loss = photometric_reconstruction_loss(tgt_img_l_var, [tgt_img_r_var],
-#                                     intrinsics_l_var, intrinsics_l_inv_var, disp_l, explainability_mask,
-#                                     T_LR_var, rotation_mode=rotation_mode, ssim=ssim, stereo=True, left=True,
-#                                     disp_norm=disp_norm, upscaling=upscaling)
-#             # LR SSIM loss
-#             if 'loss_LRS' in loss_dict:
-#                 loss_dict['loss_LRS'] = SSIM_loss
-#
-#             # RL photometric loss
-#             if 'loss_RL' in loss_dict:
-#                 assert disp_r is not None
-#                 loss_dict['loss_RL'], SSIM_loss = photometric_reconstruction_loss(tgt_img_r_var, [tgt_img_l_var],
-#                                         intrinsics_r_var, intrinsics_r_inv_var, disp_r, explainability_mask,
-#                                         T_LR_var, rotation_mode=rotation_mode, ssim=ssim, stereo=True, left=False,
-#                                         disp_norm=disp_norm, upscaling=upscaling)
-#                 # RL SSIM loss
-#                 if 'loss_LRS' in loss_dict:
-#                     loss_dict['loss_LRS'] += SSIM_loss
-#
-#                 # right disparity smoothing loss
-#                 if 'loss_S' in loss_dict:
-#                     loss_dict['loss_S'] += smooth_loss(disp_r, tgt_img_r_var, edge_aware=edge_aware, disp_norm=disp_norm,
-#                                                        upscaling=upscaling)
-#
-#         # disparity consistency loss
-#         if 'loss_DC' in loss_dict:
-#             assert disp_r is not None
-#             loss_dict['loss_DC'] = disp_consistency_loss(disp_l, disp_r, tgt_img_l_var.size(0), tgt_img_l_var.size(2),
-#                                     tgt_img_l_var.size(3))
-#
-#     else:
-#         if 'loss_LR' in loss_dict:
-#             del loss_dict['loss_LR']
-#         if 'loss_LRS' in loss_dict:
-#             del loss_dict['loss_LRS']
-#         if 'loss_RL' in loss_dict:
-#             del loss_dict['loss_RL']
-#         if 'loss_DC' in loss_dict:
-#             del loss_dict['loss_DC']
-#
-#     # compute total loss
-#     loss = 0
-#     loss_names = ['tot_loss']
-#     losses_list = [torch.zeros(1)]
-#     for loss_name, loss_value in loss_dict.items():
-#         loss += loss_weights_dict['w_{}'.format(loss_name[5:])] * loss_value
-#         loss_names.append(loss_name)
-#         losses_list.append(loss_value)
-#     losses_list[0] = loss                 # total loss
-#
-#     return losses_list, loss_names
 
 
 def photometric_reconstruction_loss(tgt_img, ref_imgs, intrinsics, intrinsics_inv, disp, explainability_mask, pose,
@@ -641,23 +556,24 @@ def disp_consistency_loss(disp_l, disp_r, img_size, upscaling=False, disp_norm=F
     return DC_loss
 
 
-def disp_supervised_loss(disp, gt_depth, loss_params_dict):
+def depth_supervised_loss(depth, gt_depth, loss_params_dict):
     '''Input:
-         - disp (B,1,in_h,in_w) (tensor) - depth from the finest layer (at the same resolution as the input image)
-         - gt_depth (B,h,w) (tensor) - GT depth at the same resolution as disp'''
-    disp = torch.squeeze(disp)
-    assert disp.size() == gt_depth.size()
+         - depth (B,1,in_h,in_w) (tensor) - depth from the finest layer (at the same resolution as the input image)
+         - gt_depth (B,h,w) (tensor) - GT depth at the same resolution as depth'''
+    gt_depth = gt_depth / 255 * 80
+    depth = torch.squeeze(depth)
+    assert depth.size() == gt_depth.size()
     b, h, w = gt_depth.size()
     gt_depth = gt_depth.cuda()
 
     if loss_params_dict['disp_norm']:
         if b == 1:
-            normalized_disp = disp / disp.mean()
+            normalized_disp = depth / depth.mean()
         else:
-            normalized_disp_means = torch.mean(torch.mean(disp, dim=1), dim=1)
-            normalized_disp = torch.stack([disp[i, :, :] / normalized_disp_means[i] for i in range(disp.size(0))])
+            normalized_disp_means = torch.mean(torch.mean(depth, dim=1), dim=1)
+            normalized_disp = torch.stack([depth[i, :, :] / normalized_disp_means[i] for i in range(depth.size(0))])
     else:
-        normalized_disp = disp
+        normalized_disp = depth
 
     normalized_disp = torch.clamp(normalized_disp, 1e-3, loss_params_dict['max_depth'])
     mask = generate_mask_tensor(gt_depth, max_depth=loss_params_dict['max_depth'])
@@ -666,6 +582,7 @@ def disp_supervised_loss(disp, gt_depth, loss_params_dict):
 
     # reversed Huber loss
     x = torch.abs(normalized_disp - gt_depth)
+    # DS_loss = x.mean()
     c = 0.2 * torch.max(x)
     DS_loss_L1 = torch.masked_select(x, x <= c)
     DS_loss_L2 = torch.masked_select(x, x > c)

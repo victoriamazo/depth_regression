@@ -418,14 +418,14 @@ class DepthRandomScaleCropResizeStereo(object):
         transf_params = args[-1]
         resize, resize_h, resize_w, crop, offset_y_min, offset_y_max, offset_x_min, offset_x_max, _ = transf_params
 
-        # depth smoothing
-        output_images = [ndimage.filters.maximum_filter(im, (5, 5)) for im in images]
+        # # depth smoothing
+        # output_images = [ndimage.filters.maximum_filter(im, (5, 5)) for im in images]
 
         # resize
         if resize:
-            output_images = [imresize(im, (resize_h, resize_w)) for im in output_images]
+            output_images = [imresize((im/80)*255, (resize_h, resize_w)) for im in images]
         else:
-            output_images = images
+            output_images = [(im/80)*255 for im in images]
 
         # crop
         if crop:
@@ -433,7 +433,7 @@ class DepthRandomScaleCropResizeStereo(object):
         else:
             output_images = images
 
-        # smooth_lidar_image = Image.fromarray(((output_images[0] / 80) * 255).astype('uint8'))
+        # smooth_lidar_image = Image.fromarray((output_images[0]).astype('uint8'))
         # smooth_lidar_image.show()
         #
         # im1 = Image.fromarray(((images[0] / 80) * 255).astype('uint8'))

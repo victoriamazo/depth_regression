@@ -137,7 +137,7 @@ class test_depth_pose(Test):
             explainability_mask, pose = pose_exp_net(var_dict_t['tgt_img_l'], var_dict_t['ref_imgs_l'])     # pose [B, (tx, ty, tz, rx, ry, rz)]
 
             # compute loss
-            losses_list, loss_names = compute_loss(var_dict_t, disp_l, disp_r, explainability_mask, pose,
+            losses_list, loss_names = compute_loss(var_dict_t, disp_l, depth_l, disp_r, explainability_mask, pose,
                                                    self.loss_weights_dict, self.loss_dict, self.loss_params_dict)
             losses_list_cpu = [losses.data[0] for losses in losses_list]
             if len(losses) != len(losses_list_cpu):
@@ -192,9 +192,10 @@ class test_depth_pose(Test):
     def build(self):
         self._check_args()
 
+
         # load models and weights
         models_loaded, models, model_names, self.n_iter, self.epoch = load_model_and_weights(self.load_ckpt,
-                self.load_ckpt_disp, self.FLAGS, self.debug, use_cuda, ckpts_dir=self.ckpts_dir, train=False)
+                self.load_ckpt_disp, self.FLAGS, use_cuda, ckpts_dir=self.ckpts_dir, train=False)
 
         if models_loaded:
             # run test

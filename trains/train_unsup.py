@@ -132,7 +132,11 @@ class train_unsup(Train):
                 disp_input = torch.cat((var_dict_t['tgt_img_l'], var_dict_t['tgt_img_r']), 1)
             disp = disp_net(disp_input)
             disp_l = [d[:, :1, :, :] for d in disp]
-            depth_l = [1 / d for d in disp_l]
+            b, f = 1, 1
+            # if self.stereo:
+            #     b = var_dict_t['baseline']
+            #     f = var_dict_t['intrinsics_l']  #intrinsics.view(-1)[0]
+            depth_l = [b*f / d for d in disp_l]
             disp_r = None
             if self.stereo and self.concat_LR:
                 disp_r = [d[:, 1:, :, :] for d in disp]
@@ -144,7 +148,7 @@ class train_unsup(Train):
             explainability_mask, pose = pose_exp_net(var_dict_t['tgt_img_l'], var_dict_t['ref_imgs_l'])     # pose [B, (tx, ty, tz, rx, ry, rz)]
 
             # compute loss
-            losses_list, loss_names = compute_loss(var_dict_t, disp_l, disp_r, explainability_mask, pose,
+            losses_list, loss_names = compute_loss(var_dict_t, disp_l, depth_l, disp_r, explainability_mask, pose,
                                                    self.loss_weights_dict, self.loss_dict, self.loss_params_dict)
             loss = losses_list[0]
             losses.update(loss.data[0], self.batch_size)
@@ -189,9 +193,8 @@ class train_unsup(Train):
         self._check_args(self.rm_train_dir)
 
         # initialize or resume training
-        _, models, _, self.n_iter, self.n_epoch = load_model_and_weights(self.load_ckpt,
-                self.load_ckpt_disp, self.FLAGS, self.debug, use_cuda, writer=self.writer,
-                loss_summary_path=self.loss_summary_path, loss_full_path=self.loss_full_path, loss_dict=self.loss_dict)
+        _, models, _, self.n_iter, self.n_epoch = load_model_and_weights(self.load_ckpt, self.load_ckpt_disp,
+                                                                         self.FLAGS, use_cuda)
         disp_net, pose_exp_net = models
 
         # run in parallel on several GPUs
