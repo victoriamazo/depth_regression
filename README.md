@@ -1,38 +1,26 @@
 # README
 
-## Population Based Training (PBT) method 
-Original paper by [DeepMind](https://arxiv.org/abs/1711.09846).
-Here PBT is applied to a simple example of training an mnist classifier.
+## Camera Pose Estimation
 
-### Prerequisite
+
+## Dependencies
+- Python 3
+- PyTorch 1.0
+
+Training and testing were performed on Ununtu 16.04, Cuda 8.0 and two 1080Ti GPUs.
+
+
+## Usage
+
+### Downloads
+- Clone the code
 ```
-pytorch 0.3
-python3
-scipy
-argparse
-tensorboard-pytorch
-tensorboardX
-path.py
-evo
+git clone https://github.com/victoriamazo/slam.git
 ```
 
-### Project structure
+### Configuration parameters 
 
-#### Config file
-Config file structure is described in config/config.md.
+- *"num_epochs"* - number of epochs for training 
 
-In general, dataset, model, train version, test versions and, optionally, metric and loss, 
-are automatically initialized based on the definition in a config file.
 
-#### Main
-To run a vanilla (without PBT) training and testing (as parallel threads), from the project root directory 
-```
-python3 main.py path/to/config/file
-```
-The `-m train` option allows to run only train, `-m test` to run only test and `-m traintest` to run 
-train followed by a test.
-
-To run a PBT training (testing will be run every several epochs, as defined in the config file) 
-```
-python3 main_PBT.py path/to/config/file
-```
+## Results

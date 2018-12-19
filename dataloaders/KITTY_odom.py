@@ -249,7 +249,8 @@ class KITTY_odom(data.Dataset):
                         tgt_img_r_path.dirname() / '{:06d}.png'.format(index + shift) for
                         shift in shift_range]
                     # vel_path = self.vel_root / sequence / 'velodyne' / '{:06d}.bin'.format(index)
-                    vel_path = self.vel_root / sequence / 'velodyne_png' / '{:06d}.png'.format(index)
+                    # vel_path = self.vel_root / sequence / 'velodyne_png' / '{:06d}.png'.format(index)
+                    vel_path = self.vel_root / sequence / 'velodyne_png_sparseconv' / '{:06d}.png'.format(index)
                     gt_trg_pose, gt_ref_poses = [], []
                     if self.with_gt_pose:
                         gt_trg_pose = gt_poses[index]

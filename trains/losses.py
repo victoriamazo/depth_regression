@@ -243,136 +243,6 @@ def photometric_reconstruction_loss(tgt_img, ref_imgs, intrinsics, intrinsics_in
         L1_loss += l1_loss
         SSIM_loss += ssim_loss
     return L1_loss, SSIM_loss
-# def photometric_reconstruction_loss(tgt_img, ref_imgs, intrinsics, intrinsics_inv, disp, explainability_mask, pose,
-#                                     rotation_mode='euler', padding_mode='zeros', ssim=False, stereo=False, left=True,
-#                                     disp_norm=False):
-#     '''photometric loss with:
-#         - upscaling of disparity to the tgt img size
-#         - optional disparity normalization
-#     '''
-#     b, _, h, w = tgt_img.size()
-#
-#     def one_scale(scaled_disp, explainability_mask):
-#         assert(explainability_mask is None or disp.size()[2:] == explainability_mask.size()[2:])
-#         assert(pose.size(1) == len(ref_imgs))
-#
-#         # normalize disparity image by the mean of the disparity image (not by the batch mean)
-#         if disp_norm:
-#             if b == 1:
-#                 normalized_disp = scaled_disp / scaled_disp.mean()
-#             else:
-#                 normalized_disp_means = torch.mean(torch.mean(torch.mean(scaled_disp, dim=1), dim=1), dim=1)
-#                 normalized_disp = torch.stack([scaled_disp[i,:,:,:]/normalized_disp_means[i] for i in range(scaled_disp.size(0))])  #scaled_disp / scaled_disp.mean()
-#         else:
-#             normalized_disp = scaled_disp
-#         if normalized_disp.size(2) < h or normalized_disp.size(3) < w:
-#             upscaled_disp = torch.nn.functional.upsample(normalized_disp, (h, w), mode='bilinear')
-#         else:
-#             upscaled_disp = normalized_disp
-#         upscaled_depth = 1 / upscaled_disp
-#
-#         reconstruction_loss, ssim_loss = 0, 0
-#         for i, ref_img in enumerate(ref_imgs):
-#             current_pose = pose[:, i]                                               # pose [b, num_src_imgs, 6]
-#
-#             if stereo:
-#                 if left:
-#                     ref_img_warped = generate_image_left(ref_img, upscaled_disp)
-#                 else:
-#                     ref_img_warped = generate_image_right(ref_img, upscaled_disp)
-#             else:
-#                 ref_img_warped = inverse_warp(ref_img, upscaled_depth[:, 0], current_pose, intrinsics, intrinsics_inv,
-#                                                 rotation_mode, padding_mode)
-#             out_of_bound = 1 - (ref_img_warped == 0).prod(1, keepdim=True).type_as(ref_img_warped)
-#             tgt_img_bound = tgt_img * out_of_bound
-#             ref_img_warped_bound = ref_img_warped * out_of_bound
-#
-#             if explainability_mask is not None:
-#                 tgt_img_bound = tgt_img_bound * explainability_mask[:, i:i+1].expand_as(tgt_img_bound)    #repeat for all 3 channels
-#                 ref_img_warped_bound = ref_img_warped_bound * explainability_mask[:, i:i+1].expand_as(ref_img_warped_bound)    #repeat for all 3 channels
-#
-#             diff = tgt_img_bound - ref_img_warped_bound   #(tgt_img_scaled - ref_img_warped) * out_of_bound
-#
-#             reconstruction_loss += diff.abs().mean()
-#             assert((reconstruction_loss == reconstruction_loss).data[0] == 1)
-#
-#             if ssim:
-#                 ssim_loss += SSIM(tgt_img_bound, ref_img_warped_bound)
-#
-#         return reconstruction_loss, ssim_loss
-#
-#     if type(explainability_mask) not in [tuple, list]:
-#         explainability_mask = [explainability_mask]
-#     if type(disp) not in [list, tuple]:
-#         disp = [disp]
-#
-#     L1_loss, SSIM_loss = 0, 0
-#     # loss is a sum of losses over 4 scales
-#     for d, mask in zip(disp, explainability_mask):
-#         l1_loss, ssim_loss = one_scale(d, mask)
-#         L1_loss += l1_loss
-#         SSIM_loss += ssim_loss
-#     return L1_loss, SSIM_loss
-# def photometric_reconstruction_loss(tgt_img, ref_imgs, intrinsics, intrinsics_inv, depth, explainability_mask, pose,
-#                                     rotation_mode='euler', padding_mode='zeros', stereo=False, left=True):
-#     '''old (without ssim loss together with photometric)'''
-#     def one_scale(depth, explainability_mask):
-#         assert(explainability_mask is None or depth.size()[2:] == explainability_mask.size()[2:])
-#         assert(pose.size(1) == len(ref_imgs))
-#
-#         reconstruction_loss = 0
-#         b, _, h, w = depth.size()
-#         downscale = tgt_img.size(2)/h
-#
-#         tgt_img_scaled = nn.functional.adaptive_avg_pool2d(tgt_img, (h, w))
-#         ref_imgs_scaled = [nn.functional.adaptive_avg_pool2d(ref_img, (h, w)) for ref_img in ref_imgs]
-#         intrinsics_scaled = torch.cat((intrinsics[:, 0:2]/downscale, intrinsics[:, 2:]), dim=1)
-#         intrinsics_scaled_inv = torch.cat((intrinsics_inv[:, :, 0:2]*downscale, intrinsics_inv[:, :, 2:]), dim=2)
-#
-#         for i, ref_img in enumerate(ref_imgs_scaled):
-#             current_pose = pose[:, i]                                               # pose [b, num_src_imgs, 6]
-#
-#             if stereo:
-#                 baseline = pose.view(-1)[0]
-#                 f = intrinsics.view(-1)[0]
-#                 disp = baseline * f / depth
-#                 if left:
-#                     ref_img_warped = generate_image_left(ref_img, disp)
-#                 else:
-#                     ref_img_warped = generate_image_right(ref_img, disp)
-#             else:
-#                 ref_img_warped = inverse_warp(ref_img, depth[:,0], current_pose, intrinsics_scaled, intrinsics_scaled_inv,
-#                                                 rotation_mode, padding_mode)
-#             out_of_bound = 1 - (ref_img_warped == 0).prod(1, keepdim=True).type_as(ref_img_warped)
-#             tgt_img_scaled_bound = tgt_img_scaled * out_of_bound
-#             ref_img_warped_bound = ref_img_warped * out_of_bound
-#
-#             if explainability_mask is not None:
-#                 tgt_img_scaled_bound = tgt_img_scaled_bound * explainability_mask[:, i:i+1].expand_as(tgt_img_scaled_bound)    #repeat for all 3 channels
-#                 ref_img_warped_bound = ref_img_warped_bound * explainability_mask[:, i:i+1].expand_as(ref_img_warped_bound)    #repeat for all 3 channels
-#
-#             tgt_img_list.append(tgt_img_scaled_bound)
-#             ref_imgs_warped_list.append(ref_img_warped_bound)
-#
-#             diff = tgt_img_scaled_bound - ref_img_warped_bound   #(tgt_img_scaled - ref_img_warped) * out_of_bound
-#
-#             reconstruction_loss += diff.abs().mean()
-#             assert((reconstruction_loss == reconstruction_loss).data[0] == 1)
-#
-#         return reconstruction_loss
-#
-#     if type(explainability_mask) not in [tuple, list]:
-#         explainability_mask = [explainability_mask]
-#     if type(depth) not in [list, tuple]:
-#         depth = [depth]
-#
-#     loss = 0
-#     tgt_img_list = []
-#     ref_imgs_warped_list = []
-#     # loss is a sum of losses over 4 scales
-#     for d, mask in zip(depth, explainability_mask):
-#         loss += one_scale(d, mask)
-#     return loss, tgt_img_list, ref_imgs_warped_list
 
 
 def SSIM(tgt_img, ref_img):
@@ -395,29 +265,6 @@ def SSIM(tgt_img, ref_img):
     SSIM_loss = torch.clamp((1 - SSIM) / 2, min=0, max=1).mean()
 
     return SSIM_loss
-# def SSIM(tgt_img_list, ref_imgs_warped_list):
-#     assert len(tgt_img_list) == len(ref_imgs_warped_list)
-#     C1 = 0.01**2
-#     C2 = 0.03**2
-#     avg_pooling = torch.nn.AvgPool2d(3, stride=1)
-#
-#     # loss is a sum of losses over 4 scales
-#     SSIM_loss = 0
-#     for tgt_img_scaled, ref_img_scaled in zip(tgt_img_list, ref_imgs_warped_list):
-#         mu_x = avg_pooling(tgt_img_scaled)
-#         mu_y = avg_pooling(ref_img_scaled)
-#
-#         sigma_x = avg_pooling(tgt_img_scaled**2) - mu_x**2
-#         sigma_y = avg_pooling(ref_img_scaled**2) - mu_y**2
-#         sigma_xy = avg_pooling(tgt_img_scaled * ref_img_scaled) - mu_x * mu_y
-#
-#         SSIM_n = (2 * mu_x * mu_y + C1) * (2 * sigma_xy + C2)
-#         SSIM_d = (mu_x**2 + mu_y**2 + C1) * (sigma_x + sigma_y + C2)
-#
-#         SSIM = SSIM_n / SSIM_d
-#         SSIM_loss += torch.clamp((1 - SSIM) / 2, min=0, max=1).mean()
-#
-#         return SSIM_loss
 
 
 def explainability_loss(mask):
@@ -485,25 +332,27 @@ def smooth_loss(disp, tgt_img, loss_params_dict):
             loss += ((dx2.abs().mean() + dxdy.abs().mean() + dydx.abs().mean() + dy2.abs().mean())*weight) #/downscale
             weight /= 2.83  # 2sqrt(2)
     return loss
-# def smooth_loss(pred_disp):
-#     def gradient(pred):
-#         D_dy = pred[:, :, 1:] - pred[:, :, :-1]
-#         D_dx = pred[:, :, :, 1:] - pred[:, :, :, :-1]
-#         return D_dx, D_dy
-#
-#     if type(pred_disp) not in [tuple, list]:
-#         pred_disp = [pred_disp]
-#
-#     loss = 0
-#     weight = 1.
-#
-#     for scaled_disp in pred_disp:
-#         dx, dy = gradient(scaled_disp)
-#         dx2, dxdy = gradient(dx)
-#         dydx, dy2 = gradient(dy)
-#         loss += (dx2.abs().mean() + dxdy.abs().mean() + dydx.abs().mean() + dy2.abs().mean())*weight
-#         weight /= 2.83  # 2sqrt(2)
-#     return loss
+
+
+def plain_smooth_loss(pred_disp):
+    def gradient(pred):
+        D_dy = pred[:, :, 1:] - pred[:, :, :-1]
+        D_dx = pred[:, :, :, 1:] - pred[:, :, :, :-1]
+        return D_dx, D_dy
+
+    if type(pred_disp) not in [tuple, list]:
+        pred_disp = [pred_disp]
+
+    loss = 0
+    weight = 1.
+
+    for scaled_disp in pred_disp:
+        dx, dy = gradient(scaled_disp)
+        dx2, dxdy = gradient(dx)
+        dydx, dy2 = gradient(dy)
+        loss += (dx2.abs().mean() + dxdy.abs().mean() + dydx.abs().mean() + dy2.abs().mean())*weight
+        weight /= 2.83  # 2sqrt(2)
+    return loss
 
 
 def disp_consistency_loss(disp_l, disp_r, img_size, upscaling=False, disp_norm=False):

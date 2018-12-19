@@ -2,7 +2,6 @@ import csv
 import os
 import shutil
 from collections import OrderedDict
-from shutil import copyfile
 import matplotlib.pyplot as plt
 from collections import Counter
 import datetime
@@ -686,13 +685,15 @@ def normalize_depth_for_display(disp, pc=95, crop_percent=0, normalizer=None, cm
 
 
 def check_if_best_model_and_save(results_table_path, best_criteria, models, model_names, iter, epoch, save_path, debug,
-                                 suffix='pose'):
+                                 suffix='pose', metric=True):
     ''' Get test losses and metrics from the results_table,
         decide whether the current loss/metric is the best.
         The decision is made based according to 'best_criteria', which should be a
         name of column in the results table.
-        If best, save the ckpt as best (not in debug mode).'''
-    results_table_path_tmp = Path(results_table_path).dirname()/'results_tmp.csv'
+        If best, save the ckpt as best (not in debug mode).
+        If metric=True, best criteria is the largest item, else the smallest.'''
+    filename = (results_table_path.split('/')[-1]).split('.')[0]
+    results_table_path_tmp = Path(results_table_path).dirname() / '{}_tmp.csv'.format(filename)
 
     # check whether 'iter' is the best iteration according to the best criteria
     is_best = False
@@ -704,12 +705,16 @@ def check_if_best_model_and_save(results_table_path, best_criteria, models, mode
                 col_names = results_table.columns.tolist()[1:]
                 assert best_criteria in col_names, 'criteria for best model is not in the results table'
                 best_criteria_col_np = np.array(results_table[best_criteria])
-                best_criteria_value = np.min(best_criteria_col_np)
+                if metric:
+                    best_criteria_value = np.max(best_criteria_col_np)
+                else:
+                    best_criteria_value = np.min(best_criteria_col_np)
                 iter_col_np = np.array(results_table['iter'])
                 assert iter in iter_col_np, 'current iteration is not in the results table'
                 iter_idx = np.where(np.array(results_table['iter'])==iter)[0][0]
                 iter_criteria_value = best_criteria_col_np[iter_idx]
-                if iter_criteria_value <= best_criteria_value:
+                if ((metric and iter_criteria_value >= best_criteria_value) or
+                        (not metric and iter_criteria_value <= best_criteria_value)):
                     is_best = True
             os.remove(results_table_path_tmp)
 
@@ -985,7 +990,8 @@ def save_train_losses_and_imgs_to_tensorboard_and_csv(var_dict_t, writer, losses
 
 def save_test_losses_to_tensorboard(test_iters_dict, results_table_path, writer, debug=False):
     ''' Get test losses from the results_table and add them to tensorboard'''
-    results_table_path_tmp = Path(results_table_path).dirname() / 'results_tmp.csv'
+    filename = (results_table_path.split('/')[-1]).split('.')[0]
+    results_table_path_tmp = Path(results_table_path).dirname() / '{}_tmp.csv'.format(filename)
     if os.path.isfile(results_table_path):
         copyfile(results_table_path, results_table_path_tmp)
         results_table = pd.read_csv(results_table_path_tmp, index_col=0)
@@ -1043,7 +1049,8 @@ def write_summary_to_csv(loss_summary_path, results_table_path, n_iter, epoch, t
 
     # get test loss for current iteration
     test_loss = -1
-    results_table_path_tmp = Path(results_table_path).dirname() / 'results_tmp.csv'
+    filename = (results_table_path.split('/')[-1]).split('.')[0]
+    results_table_path_tmp = Path(results_table_path).dirname() / '{}_tmp.csv'.format(filename)
     if os.path.isfile(results_table_path):
         copyfile(results_table_path, results_table_path_tmp)
         results_table = pd.read_csv(results_table_path_tmp, index_col=0)

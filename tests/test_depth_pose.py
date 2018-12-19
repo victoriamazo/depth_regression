@@ -1,4 +1,3 @@
-import itertools
 import os
 import shutil
 import time
@@ -14,8 +13,7 @@ from metrics.depth_metrics import compute_depth_metrics_i, compute_depth_metrics
 from tests.test_builder import Test
 from trains.losses import compute_loss
 from utils.auxiliary import AverageMeter, save_loss_to_resultstable, ensure_dir, check_if_best_model_and_save, \
-    save_concat_img_results, load_model_and_weights, convert_to_tensors, make_loss_dict, read_scene_data_KITTY, \
-    flip_and_concat_imgs
+    save_concat_img_results, load_model_and_weights, convert_to_tensors, make_loss_dict, flip_and_concat_imgs
 
 use_cuda = torch.cuda.is_available()
 
@@ -233,7 +231,7 @@ class test_depth_pose(Test):
                     for results_dir in results_dir_lst:
                         shutil.rmtree(results_dir)
                     print("Removing {}".format(results_dir))
-            if self.with_gt_pose:
+            if self.with_gt_depth:
                 is_best_depth = check_if_best_model_and_save(self.results_table_path, self.best_criteria_pose, models,
                                                        model_names, self.n_iter, self.epoch, save_path, self.debug,
                                                        suffix='depth')

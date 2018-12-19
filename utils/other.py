@@ -93,7 +93,6 @@ def convert_pdf2jpg(root_dir, suffix='no', sequence='09'):
 
 
 if __name__ == '__main__':
-    # TODO: 'with Image(filename=pdf_path, resolution=200) as img:' is not athorized error
     root_dir = '/media/victoria/d/models/PoseEst/1809Sep09_14-53-11_KITTY_odom_zhan_l0.0002_b4_l12-0.5,LR-0.25,RL-0.25,S-0.1,E-0.2_e1_s1'
     convert_pdf2jpg(root_dir, suffix='no')
     convert_pdf2jpg(root_dir, suffix='scaling')
