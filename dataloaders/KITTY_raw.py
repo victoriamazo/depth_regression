@@ -298,6 +298,7 @@ class KITTY_raw(data.Dataset):
 
 
 if __name__ == '__main__':
+
     import multiprocessing
     class FLAGS():
         def __init__(self):
