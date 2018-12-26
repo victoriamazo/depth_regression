@@ -157,7 +157,7 @@ def bilinear_sampler_1d(input_images, x_offset, wrap_mode='edge'):
         x1 = x1.type(torch.FloatTensor)
         dim2 = _width + 2 * _edge_size
         dim1 = (_width + 2 * _edge_size) * (_height + 2 * _edge_size)  #_width * _height
-        base = _repeat(torch.arange(_num_batch) * dim1, _height * _width)
+        base = _repeat(torch.arange(_num_batch) * dim1, _height * _width).type(torch.FloatTensor)
 
         base_y0 = base + y0 * dim2
         idx_l = base_y0 + x0

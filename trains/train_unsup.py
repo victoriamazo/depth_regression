@@ -33,38 +33,22 @@ class train_unsup(Train):
         self.height = FLAGS.height
         self.width = FLAGS.width
         self.stereo = FLAGS.stereo
-        self.with_gt_pose, self.with_gt_depth = False, False
-        if hasattr(FLAGS, 'with_gt'):
-            self.with_gt_pose = FLAGS.with_gt
-        if hasattr(FLAGS, 'with_gt_pose'):
-            self.with_gt_pose = FLAGS.with_gt_pose
-        if hasattr(FLAGS, 'with_gt_pose'):
-            self.with_gt_depth = FLAGS.with_gt_depth
+        self.with_gt_depth = True
+        if hasattr(FLAGS, 'model'):
+            self.model_names = list(FLAGS.model.split(','))
+        else:
+            self.model_names = ['DispNetS']
         self.max_depth = 80
         if hasattr(FLAGS, 'max_depth'):
             self.max_depth = FLAGS.max_depth
-        assert FLAGS.seq_length > 1
+        self.decreasing_lr_epochs = []
         if len(FLAGS.decreasing_lr_epochs) > 0:
             self.decreasing_lr_epochs = list(map(int, FLAGS.decreasing_lr_epochs.split(',')))
-        else:
-            self.decreasing_lr_epochs = []
         self.weight_decay = FLAGS.weight_decay
-        self.euler_angles = FLAGS.euler_angles
-        self.rotation_mode = 'euler'
-        if not self.euler_angles:
-            self.rotation_mode = 'quat'
         self.num_iters_for_print = FLAGS.num_iters_for_print
         if hasattr(FLAGS, 'seed'):
             self.seed = FLAGS.seed
         self.debug = FLAGS.debug
-        self.load_ckpt_disp = ''
-        self.rm_train_dir = True
-        if self.load_ckpt != '' or (hasattr(FLAGS, 'load_ckpt_disp') and FLAGS.load_ckpt_disp != ''):
-            self.load_ckpt_disp = FLAGS.load_ckpt_disp
-            self.rm_train_dir = False
-        if self.worker_num != None:
-            self.rm_train_dir = False
-            self.debug = True
         if not self.debug:
             save_path = os.path.join('tensorboard', self.train_dir.split('/')[-1])
             self.writer = SummaryWriter(save_path)
@@ -75,15 +59,11 @@ class train_unsup(Train):
                 self.writer.add_text('Text', line, 0)
         else:
             self.writer = None
-        self.test_iters_dict = {}
-        self.train_iters_dict = {}
+        self.test_iters_dict, self.train_iters_dict = {}, {}
+        self.n_iter, self.n_epoch = 0, 0
         self.results_table_path = os.path.join(self.train_dir, 'results.csv')
         self.loss_summary_path = os.path.join(self.train_dir, 'loss_summary.csv')
         self.loss_full_path = os.path.join(self.train_dir, 'loss_full.csv')
-        if self.worker_num != None:
-            self.results_table_path = os.path.join(self.train_dir, 'results_{}.csv'.format(self.worker_num))
-        self.n_iter = 0
-        self.n_epoch = 0
         torch.manual_seed(self.seed)
         if use_cuda:
             torch.cuda.manual_seed(self.seed)
@@ -98,8 +78,7 @@ class train_unsup(Train):
             self.upscaling = True
         if hasattr(FLAGS, 'edge_aware') and FLAGS.edge_aware:
             self.edge_aware = True
-        self.loss_params_dict = {'stereo': self.stereo, 'with_gt_pose': self.with_gt_pose,
-                                 'with_gt_depth': self.with_gt_depth, 'rotation_mode': self.rotation_mode,
+        self.loss_params_dict = {'stereo': self.stereo, 'with_gt_depth': self.with_gt_depth,
                                  'disp_norm': self.disp_norm, 'upscaling': self.upscaling,
                                  'edge_aware': self.edge_aware, 'concat_LR': self.concat_LR,
                                  'max_depth': self.max_depth, 'mode': 'train'}
@@ -111,65 +90,54 @@ class train_unsup(Train):
         print('Number of iterations per epoch: ', self.epoch_size)
 
 
-    def _train_one_epoch(self, disp_net, pose_exp_net, optimizer):
+    def _train_one_epoch(self, models, optimizer):
         one_iter_time = AverageMeter()                         # time to execute one iteration
         losses = AverageMeter(precision=4)
-        filenames_tgt, filenames_ref = [], []
+        filenames_tgt = []
 
         # switch to train mode
+        disp_net = models[0]
         disp_net.train()
-        pose_exp_net.train()
 
         end = time.time()
         for i, var_dict_np in enumerate(self.dataloader):
             # convert numpy input to pytorch tensors
-            var_dict_t, filenames_tgt, filenames_ref = convert_to_tensors(var_dict_np, filenames_tgt, filenames_ref,
-                                                        self.batch_size, self.loss_params_dict, use_cuda, test=False)
-
+            var_dict_t, filenames_tgt = convert_to_tensors(var_dict_np, filenames_tgt, self.loss_params_dict, use_cuda)
             # compute output
             disp_input = var_dict_t['tgt_img_l']
             if self.stereo and self.concat_LR:
                 disp_input = torch.cat((var_dict_t['tgt_img_l'], var_dict_t['tgt_img_r']), 1)
             disp = disp_net(disp_input)
             disp_l = [d[:, :1, :, :] for d in disp]
-            b, f = 1, 1
-            # if self.stereo:
-            #     b = var_dict_t['baseline']
-            #     f = var_dict_t['intrinsics_l']  #intrinsics.view(-1)[0]
-            depth_l = [b*f / d for d in disp_l]
-            disp_r = None
+            depth_l = [1 / d for d in disp_l]
+            disp_r, depth_r = None, None
             if self.stereo and self.concat_LR:
                 disp_r = [d[:, 1:, :, :] for d in disp]
+                depth_r = [1 / d for d in disp_r]
             elif self.stereo and (('w_RL' in self.loss_weights_dict and self.loss_weights_dict['w_RL'] > 0) or
                                         ('w_DC' in self.loss_weights_dict and self.loss_weights_dict['w_DC'] > 0)):
                 disp = disp_net(var_dict_t['tgt_img_r'])
                 disp_r = [d[:, :1, :, :] for d in disp]
-
-            explainability_mask, pose = pose_exp_net(var_dict_t['tgt_img_l'], var_dict_t['ref_imgs_l'])     # pose [B, (tx, ty, tz, rx, ry, rz)]
+                depth_r = [1 / d for d in disp_r]
 
             # compute loss
-            losses_list, loss_names = compute_loss(var_dict_t, disp_l, depth_l, disp_r, explainability_mask, pose,
-                                                   self.loss_weights_dict, self.loss_dict, self.loss_params_dict)
+            losses_list, loss_names = compute_loss(var_dict_t, disp_l, depth_l, disp_r, depth_r, self.loss_weights_dict,
+                                                   self.loss_dict, self.loss_params_dict)
             loss = losses_list[0]
-            losses.update(loss.data[0], self.batch_size)
+            losses.update(loss.data.item(), self.batch_size)
 
             # save train losses to tensorboard and csv
             if i > 0 and self.n_iter % self.num_iters_for_print == 0:
                 self.train_iters_dict = save_train_losses_and_imgs_to_tensorboard_and_csv(var_dict_t, self.writer,
-                        losses_list, loss_names, disp_l, depth_l, pose, explainability_mask, self.n_iter,
-                        self.num_iters_for_print, self.loss_full_path, self.train_iters_dict, self.n_epoch,
-                        self.rotation_mode, self.debug)
+                        losses_list, loss_names, disp_l, depth_l, self.n_iter,
+                        self.num_iters_for_print, self.loss_full_path, self.train_iters_dict, self.n_epoch, self.debug)
 
-            if i > 0 and self.n_iter % self.num_iters_for_ckpt == 0:
                 # save test losses to tensorboard and results_table.csv
                 self.test_iters_dict = save_test_losses_to_tensorboard(self.test_iters_dict, self.results_table_path,
                                                                        self.writer, self.debug)
                 # save checkpoint
-                state_names = ['dispnet', 'exp_pose']
-                states = [{'iteration': self.n_iter, 'epoch': self.n_epoch, 'state_dict': disp_net.module.state_dict()},
-                          {'iteration': self.n_iter, 'epoch': self.n_epoch, 'state_dict':
-                              pose_exp_net.module.state_dict()}]
-                save_checkpoint(self.ckpts_dir, states, state_names)
+                states = [{'iteration': self.n_iter, 'epoch': self.n_epoch, 'state_dict': disp_net.module.state_dict()}]
+                save_checkpoint(self.ckpts_dir, states, self.model_names)
 
             # compute gradient and do Adam step
             optimizer.zero_grad()
@@ -190,34 +158,32 @@ class train_unsup(Train):
 
 
     def build(self):
-        self._check_args(self.rm_train_dir)
+        self._check_args()
 
         # initialize or resume training
-        _, models, _, self.n_iter, self.n_epoch = load_model_and_weights(self.load_ckpt, self.load_ckpt_disp,
-                                                                         self.FLAGS, use_cuda)
-        disp_net, pose_exp_net = models
-
+        _, models, _, self.n_iter, self.n_epoch = load_model_and_weights(self.model_names, self.load_ckpt, self.FLAGS,
+                                                                         self.ckpts_dir, use_cuda)
         # run in parallel on several GPUs
         cudnn.benchmark = True
-        disp_net = torch.nn.DataParallel(disp_net)
-        pose_exp_net = torch.nn.DataParallel(pose_exp_net)
+        models = [torch.nn.DataParallel(models[i]) for i in range(len(models))]
 
         # optimizer
         print('=> setting adam solver')
-        parameters = chain(disp_net.parameters(), pose_exp_net.parameters())
+        if len(models) == 1:
+            parameters = chain(models[0].parameters())
         optimizer = torch.optim.Adam(parameters, self.lr, betas=(0.9, 0.999), weight_decay=self.weight_decay)
 
         # run training for n epochs
         t_begin = time.time()
         for epoch in range(self.n_epoch, self.num_epochs, 1):
             self.n_epoch = epoch
-            # TODO: to include decreasing lr schedule (in resume mode as well)
-            if self.n_epoch in self.decreasing_lr_epochs:
-                self.lr *= 0.5
-                print('learning rate decreases 1/2 at epoch {}'.format(self.n_epoch))
+            if len(self.decreasing_lr_epochs) > 0 and (self.n_epoch in self.decreasing_lr_epochs):
+                idx = self.decreasing_lr_epochs.index(self.n_epoch) + 1
+                self.lr /= 2 ** idx
+                print('learning rate decreases by {} at epoch {}'.format(2 ** idx, self.n_epoch))
 
             # run training for one epoch
-            train_loss = self._train_one_epoch(disp_net, pose_exp_net, optimizer)
+            train_loss = self._train_one_epoch(models, optimizer)
 
             # write train and test losses to 'loss_summary.csv
             test_loss = write_summary_to_csv(self.loss_summary_path, self.results_table_path,

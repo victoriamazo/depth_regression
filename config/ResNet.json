@@ -1,0 +1,62 @@
+{
+  "general": {
+    "data_dir": "/media/victoria/d/data/KITTI_raw",
+    "train_dir": "/media/victoria/d/models/DepthEst",
+    "data_loader": "KITTY_raw",
+    "model": "ResNet",
+    "num_layers": 34,
+    "height": 116,
+    "width": 612,
+    "xy_cut": "0,1224,139,369",
+    "batch_norm": 0,
+    "max_depth": 50,
+    "seed": 117,
+    "stereo": 0,
+    "loss_weights": "DS-1,S-0.01,O-0.001",
+    "concat_LR": 0,
+    "disp_norm": 0,
+    "upscaling": 0,
+    "edge_aware": 1,
+    "nonlinearity": ""
+  },
+  "train": {
+    "version": "train_unsup",
+    "batch_size": 4,
+    "gpus": "1",
+    "lr": 1e-5,
+    "num_epochs": 100,
+    "num_iters_for_ckpt": 100,
+    "num_iters_for_print": 100,
+    "decreasing_lr_epochs": "15,30,45",
+    "load_ckpt": "/media/victoria/d/models/DepthEst/1812Dec26_10-57-13_ResNet_n34_lDS-1,S-0.01,O-0.001_l1e-05/ckpts/ResNet_ckpt.pth.tar",
+    "weight_decay": 0,
+    "rand_crop": 1,
+    "hflip": 1,
+    "shuffle": 1,
+    "exp_description": "num_layers,loss_weights,lr"
+  },
+  "test": {
+    "version": "test_depth",
+    "load_ckpt": "/media/victoria/d/models/DepthEst/1812Dec24_14-10-05_depth_regr_l0.0002_lDS-1,S-0.1/ckpts/model_ckpt_best.pth.tar",
+    "batch_size": 1,
+    "gpus": "0",
+    "stereo_test": 0,
+    "best_criteria_depth": "log_rmse",
+    "rand_crop": 0,
+    "hflip": 0,
+    "skip": 1,
+    "sleep_time_sec": 60
+  },
+  "val": {
+    "version": "test_depth",
+    "load_ckpt": "",
+    "stereo_test": 0,
+    "best_criteria_depth": "log_rmse",
+    "rand_crop": 0,
+    "hflip": 0,
+    "val": "_val",
+    "batch_size": 1,
+    "gpus": "0",
+    "skip": 1
+  }
+}

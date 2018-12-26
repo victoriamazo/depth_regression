@@ -418,14 +418,11 @@ class DepthRandomScaleCropResizeStereo(object):
         transf_params = args[-1]
         resize, resize_h, resize_w, crop, offset_y_min, offset_y_max, offset_x_min, offset_x_max, _ = transf_params
 
-        # # depth smoothing
-        # output_images = [ndimage.filters.maximum_filter(im, (5, 5)) for im in images]
-
         # resize
         if resize:
-            output_images = [imresize((im/80)*255, (resize_h, resize_w)) for im in images]
+            output_images = [imresize((im/80.)*255, (resize_h, resize_w)) for im in images]
         else:
-            output_images = [(im/80)*255 for im in images]
+            output_images = [(im/80.)*255 for im in images]
 
         # crop
         if crop:
@@ -433,8 +430,8 @@ class DepthRandomScaleCropResizeStereo(object):
         else:
             output_images = images
 
-        # smooth_lidar_image = Image.fromarray((output_images[0]).astype('uint8'))
-        # smooth_lidar_image.show()
+        # image = Image.fromarray((output_images[0]).astype('uint8'))
+        # image.show()
         #
         # im1 = Image.fromarray(((images[0] / 80) * 255).astype('uint8'))
         # im1.show()
@@ -461,15 +458,7 @@ class DepthFlipToTensorStereo(object):
             output_images = images
 
         # depth = output_images[0]
-        # im2 = ndimage.filters.maximum_filter(depth, (5, 5))
-        # smooth_lidar_image = Image.fromarray(((im2 / 80) * 255).astype('uint8'))
-        # smooth_lidar_image.show()
-        #
-        # im3 = imresize(smooth_lidar_image, (128, 416))
-        # im3 = Image.fromarray(((im3 / 80) * 255).astype('uint8'))
-        # im3.show()
-        #
-        # im1 = Image.fromarray(((depth / 80) * 255).astype('uint8'))
+        # im1 = Image.fromarray((depth).astype('uint8'))
         # im1.show()
 
         # convert to tensors

@@ -1,7 +1,6 @@
 import os
 import imp
 import json
-import glob
 
 
 class Test(object):
@@ -16,10 +15,6 @@ class Test(object):
         self.load_ckpt = ''
         if hasattr(FLAGS, 'load_ckpt') and FLAGS.load_ckpt != '':
             self.load_ckpt = FLAGS.load_ckpt
-        if hasattr(FLAGS, 'worker_num'):
-            self.worker_num = int(FLAGS.worker_num)
-        else:
-            self.worker_num = None
         self.debug = FLAGS.debug
 
 
@@ -27,8 +22,6 @@ class Test(object):
         assert os.path.isdir(self.data_dir), 'correct data_dir field is required'
         assert os.path.isdir(self.train_dir), 'train_dir field is required'
         args_path = os.path.join(self.train_dir, 'args_test.json')
-        if self.worker_num != None:
-            args_path = os.path.join(self.train_dir, 'args_test_{}.json'.format(self.worker_num))
         with open(args_path, 'wt') as r:
             json.dump({arg: getattr(self.FLAGS, arg) for arg in vars(self.FLAGS)}, r, indent=2)
         if self.debug:

@@ -11,7 +11,6 @@ class Train(object):
         self.data_dir = FLAGS.data_dir
         self.train_dir = FLAGS.train_dir
         self.data_loader = FLAGS.data_loader
-        self.metric = FLAGS.metric
         self.num_epochs = FLAGS.num_epochs
         self.batch_size = FLAGS.batch_size
         self.lr = FLAGS.lr
@@ -22,13 +21,9 @@ class Train(object):
         self.load_ckpt = ''
         if hasattr(FLAGS, 'load_ckpt') and FLAGS.load_ckpt != '':
             self.load_ckpt = FLAGS.load_ckpt
-        if hasattr(FLAGS, 'worker_num'):
-            self.worker_num = int(FLAGS.worker_num)
-        else:
-            self.worker_num = None
 
 
-    def _check_args(self, rm_train_dir):
+    def _check_args(self):
         assert os.path.isdir(self.data_dir), 'correct data_dir field is required'
         # ensure_dir(self.train_dir, erase=rm_train_dir)
         ensure_dir(self.ckpts_dir, erase=False)
@@ -36,8 +31,6 @@ class Train(object):
         for arg in vars(self.FLAGS):
             print('   - ', arg, ': ', getattr(self.FLAGS, arg))
         args_path = os.path.join(self.train_dir, 'args_train.json')
-        if self.worker_num != None:
-            args_path = os.path.join(self.train_dir, 'args_train_{}.json'.format(self.worker_num))
         with open(args_path, 'wt') as r:
             json.dump({arg: getattr(self.FLAGS, arg) for arg in vars(self.FLAGS)}, r, indent=2)
 

@@ -8,24 +8,15 @@ Required to update bashrc (once):
             $ export CUDA_DEVICE_ORDER=PCI_BUS_ID
             $cd ~  $source ~/.bashrc
 
-Example:
-train and test as separate processes:
-config/mnist.json
+Examples:
+* train and test as separate processes:
+    config/poseest/KITTY_odom_zhan.json
+* serially:
+    config/poseest/KITTY_odom_zhan.json -m train
+    config/poseest/KITTY_odom_zhan.json -m test
+    config/poseest/KITTY_odom_zhan.json -m traintest
 
-serially:
-config/poseest/EuRoc_MAV.json -m train
-or
-config/densenet_rnn_test.json -m test
-or
-config/densenet_rnn_85.json -m traintest
-
-serially many tests for ckpts in the list:
-config/densenet_rnn_81_68-17.json -m test -l "60800,58000"
-
-serially many tests in the range:
-config/densenet_rnn_ggo_1.json -m test -r "2000078000 3000"
-
-by adding '--debug', no tensorboard and other writer will start (for debug mode)
+By adding '--debug', no tensorboard will start
 '''
 
 
@@ -49,10 +40,6 @@ def getArgs():
     parser.add_argument('config', metavar='DIR', help="(required) Path to config file")
     parser.add_argument('-m', '--mode', type=str, default='',
                         help="(optional) 'train', 'test', 'val', 'traintest' (in serial case only)")
-    parser.add_argument('-l', '--ckpts_list', type=str, default='',
-                        help="(optional) run tests for ckpts in the list (with interval)")
-    parser.add_argument('-r', '--ckpts_range', type=str, default='',
-                        help="(optional) run tests for ckpts in the range(a,b,c)")
     parser.add_argument('--debug', action='store_true', help='Deactivation of tensorboard and csv writers for debugging')
     args = parser.parse_args()
     return args
@@ -64,8 +51,6 @@ def input_params(args=None):
         args = getArgs()
     config_filename = args.config
     mode = args.mode
-    ckpts_list = args.ckpts_list
-    ckpts_range = args.ckpts_range
 
     # read train/test/val configuration dictionaries
     present_dir = os.getcwd()
@@ -99,8 +84,6 @@ def input_params(args=None):
         # if resume training, train_dir and all parameters should stay the same for train and test
         if 'load_ckpt' in config_train and config_train['load_ckpt'] != '':
             config_train_dir['load_ckpt'] = config_train['load_ckpt']
-            if 'load_ckpt_disp' in config_train:
-                config_train_dir['load_ckpt_disp'] = config_train['load_ckpt_disp']
             config_general['train_dir'] = "/".join((config_train['load_ckpt']).split("/")[:-2])
             config_train_path = os.path.join(config_general['train_dir'], 'args_train.json')
             if os.path.isfile(config_train_path):
@@ -121,14 +104,10 @@ def input_params(args=None):
             config_val.update(config_train_dir)
         # if train/test in parallel, ignore loading certain ckpt in test (it will load always the last ckpt)
         config_test['load_ckpt'] = ''
-        if 'load_ckpt_disp' in config_test:
-            config_test['load_ckpt_disp'] = ''
     # if mode is 'test' and no 'load_ckpt' choose latest train_dir and load config
     elif 'load_ckpt' in config_test and config_test['load_ckpt'] != '':
         train_dir = "/".join((config_test['load_ckpt']).split("/")[:-2])
         load_ckpt = config_test['load_ckpt']
-        if 'load_ckpt_disp' in config_test:
-            load_ckpt_disp = config_test['load_ckpt_disp']
         config_test_path = os.path.join(train_dir, 'args_test.json')
         if os.path.isfile(config_test_path):
             with open(config_test_path, 'rt') as r:
@@ -136,8 +115,6 @@ def input_params(args=None):
             print('loaded test config from {}'.format(config_test_path))
         config_test['train_dir'] = train_dir
         config_test['load_ckpt'] = load_ckpt
-        if 'load_ckpt_disp' in config_test:
-            config_test['load_ckpt_disp'] = load_ckpt_disp
     else:
         # load ckpt from the latest created train_dir
         root_dir = "/".join(config_general['train_dir'].split("/")[:-1])
@@ -148,7 +125,7 @@ def input_params(args=None):
     if 'val' in config:
         config_val['debug'] = debug
 
-    return config_train, config_test, config_val, mode, ckpts_list, ckpts_range, root_dir
+    return config_train, config_test, config_val, mode, root_dir
 
 
 def set_cuda_visible_gpus(config, mode, gpu_list_train=None):
@@ -170,7 +147,7 @@ def set_cuda_visible_gpus(config, mode, gpu_list_train=None):
 
 def main(args=None):
     # input parameters (dictionary)
-    config_train, config_test, config_val, mode, ckpts_list, ckpts_range, root_dir = input_params(args=args)
+    config_train, config_test, config_val, mode, root_dir = input_params(args=args)
 
     # run train/test as separate processes
     if mode == '':
@@ -199,9 +176,6 @@ def main(args=None):
             test_process.start()
             test_process.join()
 
-        # # compare and visualize results from all runs
-        # results_visualization(root_dir)
-
     # run train/test serially
     elif mode == 'test' or mode == 'train' or mode == 'traintest' or mode == 'val':
         print('running {} serially'.format(mode))
@@ -210,9 +184,7 @@ def main(args=None):
         if mode == 'train' or mode == 'traintest':
             set_cuda_visible_gpus(config_train, 'train')
             Train.train_builder(Namespace(**config_train), )
-            # # compare and visualize results from all runs
-            # results_visualization(root_dir)
-        if (mode == 'test' and ckpts_list == '' and ckpts_range == '') or mode == 'traintest':
+        if mode == 'test' or mode == 'traintest':
             if 'gpus' in config_test:
                 set_cuda_visible_gpus(config_test, 'test')
             Test.test_builder(Namespace(**config_test), )
@@ -221,34 +193,6 @@ def main(args=None):
                 set_cuda_visible_gpus(config_val, 'val')
             print('validation')
             Test.test_builder(Namespace(**config_val), )
-
-        # run multiple tests serially (on ckpts from the interval in ckpts_list)
-        elif mode == 'test' and ckpts_list != '':
-            ckpts_list = list(map(int, ckpts_list.split(',')))   #ckpts_list.split(' ')
-            assert len(ckpts_list) > 0, 'ckpts_list is contains 0 elements'
-            print('ckpts_list = ', ckpts_list)
-            for ckpt in ckpts_list:
-                config_test['checkpoint'] = "model.ckpt-{}".format(ckpt)
-                print('checkpoint {} added to FLAGS; running test on this ckpt', config_test['checkpoint'])
-                if 'gpus' in config_test:
-                    set_cuda_visible_gpus(config_test, 'test')
-                Test.test_builder(Namespace(**config_test), )
-
-        # run multiple tests serially (on range of ckpts in ckpts_range)
-        elif mode == 'test' and ckpts_range != '':
-            t0 = time.time()
-            ckpts_range = list(map(int, ckpts_range.split(',')))           #ckpts_range.split(' ')
-            assert len(ckpts_range) == 3, 'ckpts_range is contains 0 elements'
-            print('ckpts_range = ', ckpts_range)
-            ckpts_list = range(int(ckpts_range[1]), int(ckpts_range[0]), -int(ckpts_range[2]))
-            print('ckpts_list = ', ckpts_list)
-            for ckpt in ckpts_list:
-                config_test['checkpoint'] = "model.ckpt-{}".format(ckpt)
-                print('checkpoint {} added to FLAGS; running test on this ckpt', config_test['checkpoint'])
-                if 'gpus' in config_test:
-                    set_cuda_visible_gpus(config_test, 'test')
-                Test.test_builder(Namespace(**config_test), )
-            print("\n(testing took {} hours)".format((time.time() - t0) / (60.0 * 60.0)))
     else:
         'wrong arguments given'
 
