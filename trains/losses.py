@@ -4,7 +4,6 @@ import torch
 from torch import nn
 
 
-
 def compute_loss(var_dict_t, disp_l, depth_l, disp_r, depth_r, loss_weights_dict, loss_dict, loss_params_dict):
     '''
     :param var_dict_t: dictionary of all variables (pytorch tensors)
