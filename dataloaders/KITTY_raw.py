@@ -44,13 +44,14 @@ class KITTY_raw(data.Dataset):
         else:
             self.stereo = FLAGS.stereo_test
         self.seq_length = 1
-        if hasattr(FLAGS, 'xy_cut'):
-            self.xy_cut = FLAGS.xy_cut
+        if hasattr(FLAGS, 'seq_length'):
+            self.seq_length = FLAGS.seq_length
         self.height = FLAGS.height
         self.width = FLAGS.width
         self.xy_cut = []
         if hasattr(FLAGS, 'xy_cut'):
             self.xy_cut = list(map(int, FLAGS.xy_cut.split(',')))
+        self.depth_w, self.depth_h = 1240, 376
         self.min_depth, self.max_depth = 1e-3, 80
         if hasattr(FLAGS, 'min_depth'):
             self.min_depth = FLAGS.min_depth
@@ -106,6 +107,7 @@ class KITTY_raw(data.Dataset):
         intrinsics_l = np.copy(sample['intrinsics_l'])
         intrinsics_r = np.copy(sample['intrinsics_r'])
         filename_tgt = sample['tgt_img_l']
+        #TODO: add dense depth in test mode ffor visualization
         if self.mode == 'train':
             # loading dense depth
             gt_depth_l_im = Image.open(sample['gt_trg_depth_l'])
@@ -117,12 +119,12 @@ class KITTY_raw(data.Dataset):
                 gt_depth_r = np.array(gt_depth_r_im) / 255.
         else:
             # loading sparse depth for test (filling with zeros absent pixels in depth map (left corner))
-            gt_depth_l_tmp = generate_depth_map(sample['calib_dir'], sample['gt_trg_depth_l'], tgt_img_l.shape[:2],
-                                                cam=2)[:self.depth_h, :self.depth_w]
+            gt_depth_l_tmp = generate_depth_map(sample['calib_dir'], sample['gt_trg_depth_l'], tgt_img_l.shape[:2], cam=2)[:self.depth_h, :self.depth_w]
             gt_depth_l = np.zeros((self.depth_h, self.depth_w))
             h_min = self.depth_h - gt_depth_l_tmp.shape[0]
             w_min = self.depth_w - gt_depth_l_tmp.shape[1]
             gt_depth_l[h_min:, w_min:] = gt_depth_l_tmp
+            gt_depth_r = np.zeros_like(gt_depth_l)
             if self.stereo:
                 gt_depth_r_tmp = generate_depth_map(sample['calib_dir'], sample['gt_trg_depth_l'], tgt_img_l.shape[:2],
                                                     cam=3)[:self.depth_h, :self.depth_w]

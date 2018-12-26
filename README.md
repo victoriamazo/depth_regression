@@ -36,7 +36,8 @@ Training and testing were performed on Ununtu 16.04, Cuda 8.0 and 1080Ti GPU.
 git clone https://github.com/victoriamazo/depth_regression.git
 ```
 - Download [KITTY raw dataset](http://www.cvlibs.net/datasets/kitti/raw_data.php)
-- Download a pretrained DispNetS model [here]()
+- Download a pretrained DispNetS model (mono) [here]()
+- Download a pretrained ResNet50 model (mono) [here]()
 
 ### Training/testing
 Training and testing as parallel threads

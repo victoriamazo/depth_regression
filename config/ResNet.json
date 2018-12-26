@@ -37,7 +37,7 @@
   },
   "test": {
     "version": "test_depth",
-    "load_ckpt": "/media/victoria/d/models/DepthEst/1812Dec24_14-10-05_depth_regr_l0.0002_lDS-1,S-0.1/ckpts/model_ckpt_best.pth.tar",
+    "load_ckpt": "/media/victoria/d/models/DepthEst/1812Dec26_10-52-26_ResNet_n34_lDS-1,S-0.01_l1e-05/ckpts/ResNet_ckpt.pth.tar",
     "batch_size": 1,
     "gpus": "0",
     "stereo_test": 0,

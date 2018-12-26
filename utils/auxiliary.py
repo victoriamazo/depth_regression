@@ -164,7 +164,6 @@ def generate_depth_map(calib_dir, velo_file_name, im_shape, cam=2, odom=False):
         elif cam == 3:
             P_velo2im = np.dot(np.dot(P_rect_30, R_cam2rect), velo2cam)
     else:
-        calib_dir = '/media/victoria/d/data/KITTI_raw/2011_09_26'
         cam2cam = read_calib_file_kitty(calib_dir / 'calib_cam_to_cam.txt')
         velo2cam = read_calib_file_kitty(calib_dir / 'calib_velo_to_cam.txt')
         velo2cam = np.hstack((velo2cam['R'].reshape(3, 3), velo2cam['T'][..., np.newaxis]))
