@@ -117,9 +117,9 @@ class test_depth(Test):
             depth_metrics[:, i] = abs_rel, sq_rel, rmse, rmse_log, a1, a2, a3
 
             # save every nth image concatenated with its outputs (depth visualization):
-            if i%500 == 0:
-                save_concat_img_results(var_dict_t, disp_l, depth_l, self.visualization_test_dir, self.n_iter,
-                                        filenames_tgt)
+            if i%100 == 0:
+                save_concat_img_results(var_dict_t, disp_l, self.visualization_test_dir, self.n_iter,
+                                        filenames_tgt[i])
 
             # measure elapsed time
             one_iter_time.update(time.time() - end)
@@ -151,8 +151,11 @@ class test_depth(Test):
             save_loss_to_resultstable(values, col_names, self.results_table_path, self.n_iter, self.epoch, self.debug)
 
             # check if best model (saves best model if not in debug mode)
+            min_value = True
+            if self.best_criteria_depth in ["a1", "a2", "a3"]:
+                min_value = False
             is_best_depth = check_if_best_model_and_save(self.results_table_path, self.best_criteria_depth, models,
-                                                   model_names, self.n_iter, self.epoch, self.ckpts_dir, self.debug)
+                                model_names, self.n_iter, self.epoch, self.ckpts_dir, self.debug, min_value=min_value)
             print('is_best_depth = ', is_best_depth)
             metrics_str = ','.join([' {}: {:.4f}'.format(name, val) for name, val in zip(col_names, values)])
             print("\nTest: epoch {} (iter {}), time per test {:.2f}s, time per one batch (of {}) {:.2f}s, total avg "

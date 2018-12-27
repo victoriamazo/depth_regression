@@ -107,7 +107,6 @@ class KITTY_raw(data.Dataset):
         intrinsics_l = np.copy(sample['intrinsics_l'])
         intrinsics_r = np.copy(sample['intrinsics_r'])
         filename_tgt = sample['tgt_img_l']
-        #TODO: add dense depth in test mode ffor visualization
         if self.mode == 'train':
             # loading dense depth
             gt_depth_l_im = Image.open(sample['gt_trg_depth_l'])
@@ -119,19 +118,16 @@ class KITTY_raw(data.Dataset):
                 gt_depth_r = np.array(gt_depth_r_im) / 255.
         else:
             # loading sparse depth for test (filling with zeros absent pixels in depth map (left corner))
-            gt_depth_l_tmp = generate_depth_map(sample['calib_dir'], sample['gt_trg_depth_l'], tgt_img_l.shape[:2], cam=2)[:self.depth_h, :self.depth_w]
+            gt_depth_l_tmp = generate_depth_map(sample['calib_dir'], sample['gt_trg_depth_l'], tgt_img_l.shape[:2],
+                                                cam=2)[:self.depth_h, :self.depth_w]
             gt_depth_l = np.zeros((self.depth_h, self.depth_w))
             h_min = self.depth_h - gt_depth_l_tmp.shape[0]
             w_min = self.depth_w - gt_depth_l_tmp.shape[1]
             gt_depth_l[h_min:, w_min:] = gt_depth_l_tmp
-            gt_depth_r = np.zeros_like(gt_depth_l)
-            if self.stereo:
-                gt_depth_r_tmp = generate_depth_map(sample['calib_dir'], sample['gt_trg_depth_l'], tgt_img_l.shape[:2],
-                                                    cam=3)[:self.depth_h, :self.depth_w]
-                gt_depth_r = np.zeros((self.depth_h, self.depth_w))
-                h_min = self.depth_h - gt_depth_r_tmp.shape[0]
-                w_min = self.depth_w - gt_depth_r_tmp.shape[1]
-                gt_depth_r[h_min:, w_min:] = gt_depth_r_tmp
+            # loading dense depth for visualization
+            gt_depth_r_im = Image.open(sample['gt_trg_depth_r'])
+            gt_depth_r = np.array(gt_depth_r_im) / 255.
+            # Image.fromarray(gt_depth_r).show()
         if len(self.xy_cut) > 0:
             tgt_img_l = tgt_img_l[self.xy_cut[2]:self.xy_cut[3], self.xy_cut[0]:self.xy_cut[1]]
             tgt_img_r = tgt_img_r[self.xy_cut[2]:self.xy_cut[3], self.xy_cut[0]:self.xy_cut[1]]
@@ -162,11 +158,11 @@ class KITTY_raw(data.Dataset):
 
         # depth transforms (returns depth in the original size, since resize reduces quality)
         depth_list = [gt_depth_l]
-        if self.stereo:
+        if self.stereo or self.mode == 'test':
             depth_list.append(gt_depth_r)
         depth_list_out, args_out = self.depth_transform(depth_list, args_out)
         gt_depth_l = depth_list_out[0][:370, :1224]
-        if self.stereo:
+        if self.stereo or self.mode == 'test':
             gt_depth_r = depth_list_out[1][:370, :1224]
 
         var_dict_np = {'tgt_img_l': tgt_img_l, 'intrinsics_l': intrinsics_l,
@@ -185,6 +181,8 @@ class KITTY_raw(data.Dataset):
             else:
                 var_dict_np['tgt_img_r'] = images_out[1+num_ref_img]
                 var_dict_np['ref_imgs_r'] = images_out[2+num_ref_img:2+2*num_ref_img]
+        elif self.mode == 'test':
+            var_dict_np['gt_depth_r'] = gt_depth_r
 
         return var_dict_np
 
@@ -214,7 +212,7 @@ class KITTY_raw(data.Dataset):
                 tgt_img_r_path = data_root / date / scene / 'image_03/data/{}.png'.format(index[:10])
                 ref_imgs_r_path = [tgt_img_r_path.dirname() / '{:010d}.png'.format(int(index) + shift) for shift in shift_range]
                 vel_path_l = data_root / date / scene / 'velodyne_points' / 'data' / '{}.bin'.format(index[:10])
-                vel_path_r = ''
+                vel_path_r = data_root / date / scene / 'velodyne_sparsetodense' / '{}.png'.format(index[:10])
                 calib_dir = data_root / date
 
                 # ensures ref_imgs are present, if not, set shift to 0 so that it will be discarded later

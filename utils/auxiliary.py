@@ -68,7 +68,7 @@ def load_as_float(path):
 def convert_to_tensors(var_dict_np, filenames_tgt, params_dict, use_cuda, test=False):
     assert 'tgt_img_l' in var_dict_np, '{} not given by dataloader'.format('tgt_img_l')
     var_dict_t = {}
-    filename_tgt_cut = [(var_dict_np['filename_tgt'][i].split("/")[-1]).split(".")[0] for i in range(len(var_dict_np['filename_tgt']))]
+    filename_tgt_cut = [str((var_dict_np['filename_tgt'][0].split("/")[-1]).split(".")[0]) for i in range(len(var_dict_np['filename_tgt']))]
     filenames_tgt.append(filename_tgt_cut[0:len(filename_tgt_cut)])
     var_dict_t['tgt_img_l_cpu'] = var_dict_np['tgt_img_l']
     if use_cuda:
@@ -89,10 +89,10 @@ def convert_to_tensors(var_dict_np, filenames_tgt, params_dict, use_cuda, test=F
         if use_cuda:
             tgt_img_r = var_dict_np['tgt_img_r'].cuda()
         var_dict_t['tgt_img_r'] = Variable(tgt_img_r)
-        if test:
-            with torch.no_grad():
-                var_dict_t['gt_depth_r'] = Variable(var_dict_np['gt_depth_r'])
-        else:
+        if not test:
+            var_dict_t['gt_depth_r'] = Variable(var_dict_np['gt_depth_r'])
+    if test:
+        with torch.no_grad():
             var_dict_t['gt_depth_r'] = Variable(var_dict_np['gt_depth_r'])
 
     return var_dict_t, filenames_tgt
@@ -323,13 +323,13 @@ def normalize_depth_for_display(depth, pc=95, crop_percent=0, normalizer=None, c
 
 
 def check_if_best_model_and_save(results_table_path, best_criteria, models, model_names, iter, epoch, save_path, debug,
-                                 metric=True):
+                                 min_value=True):
     ''' Get test losses and metrics from the results_table,
         decide whether the current loss/metric is the best.
         The decision is made based according to 'best_criteria', which should be a
         name of column in the results table.
         If best, save the ckpt as best (not in debug mode).
-        If metric=True, best criteria is the largest item, else the smallest.'''
+        If min_value=True, best criteria is the smalles item, else the greatest.'''
     filename = (results_table_path.split('/')[-1]).split('.')[0]
     results_table_path_tmp = Path(results_table_path).dirname() / '{}_tmp.csv'.format(filename)
 
@@ -343,16 +343,16 @@ def check_if_best_model_and_save(results_table_path, best_criteria, models, mode
                 col_names = results_table.columns.tolist()[1:]
                 assert best_criteria in col_names, 'criteria for best model is not in the results table'
                 best_criteria_col_np = np.array(results_table[best_criteria])
-                if metric:
-                    best_criteria_value = np.max(best_criteria_col_np)
-                else:
+                if min_value:
                     best_criteria_value = np.min(best_criteria_col_np)
+                else:
+                    best_criteria_value = np.max(best_criteria_col_np)
                 iter_col_np = np.array(results_table['iter'])
                 assert iter in iter_col_np, 'current iteration is not in the results table'
                 iter_idx = np.where(np.array(results_table['iter'])==iter)[0][0]
                 iter_criteria_value = best_criteria_col_np[iter_idx]
-                if ((metric and iter_criteria_value >= best_criteria_value) or
-                        (not metric and iter_criteria_value <= best_criteria_value)):
+                if ((min_value and iter_criteria_value <= best_criteria_value) or
+                        (not min_value and iter_criteria_value >= best_criteria_value)):
                     is_best = True
             os.remove(results_table_path_tmp)
 
@@ -566,14 +566,14 @@ def write_summary_to_csv(loss_summary_path, results_table_path, n_iter, epoch, t
     return test_loss
 
 
-def save_concat_img_results(var_dict_t, disp, depth, visualization_test_dir, n_iter, filename_tgt_cut):
+def save_concat_img_results(var_dict_t, disp, visualization_test_dir, n_iter, filename_tgt_cut):
     images = [tensor2array(var_dict_t['tgt_img_l_cpu'][0])]
     images.append(tensor2array(disp.data[0].cpu(), max_value=None, colormap='bone'))
     depth = 1.0 / (disp.data[0].cpu().squeeze().numpy() + 1e-6)
     images.append(normalize_depth_for_display(depth))
-    images.append(normalize_depth_for_display(var_dict_t['gt_depth_l'].data[0].cpu().numpy()))
-    img_names = ['trg', 'disp', 'depth']
-    save_path = os.path.join(visualization_test_dir, 'img_comb_{}_{}.jpg'.format(n_iter, filename_tgt_cut[0][0]))
+    images.append(normalize_depth_for_display(var_dict_t['gt_depth_r'].data[0].cpu().numpy()))
+    img_names = ['trg', 'disp', 'depth', 'gt_depth']
+    save_path = os.path.join(visualization_test_dir, 'img_comb_{}_{}.jpg'.format(n_iter, filename_tgt_cut[0]))
     save_concat_imgs(images, img_names, save_path)
 
 

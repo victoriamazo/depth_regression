@@ -11,7 +11,7 @@
     "max_depth": 50,
     "seed": 117,
     "stereo": 0,
-    "loss_weights": "DS-1,S-0.01",
+    "loss_weights": "DS-1,S-0.01,O-0.001",
     "concat_LR": 0,
     "disp_norm": 0,
     "upscaling": 0,
@@ -24,19 +24,19 @@
     "gpus": "0",
     "lr": 2e-4,
     "num_epochs": 100,
-    "num_iters_for_ckpt": 100,
-    "num_iters_for_print": 100,
+    "num_iters_for_ckpt": 1000,
+    "num_iters_for_print": 1000,
     "decreasing_lr_epochs": "15,30,45",
     "load_ckpt": "",
     "weight_decay": 0,
     "rand_crop": 1,
     "hflip": 1,
     "shuffle": 1,
-    "exp_description": "lr,loss_weights"
+    "exp_description": "loss_weights,lr"
   },
   "test": {
     "version": "test_depth",
-    "load_ckpt": "/media/victoria/d/models/DepthEst/1812Dec24_14-10-05_depth_regr_l0.0002_lDS-1,S-0.1/ckpts/model_ckpt_best.pth.tar",
+    "load_ckpt": "/media/victoria/d/models/DepthEst/1812Dec26_16-38-50_DispNetS_l0.0002_lDS-1,S-0.01/ckpts/DispNetS_ckpt_best.pth.tar",
     "batch_size": 1,
     "gpus": "1",
     "stereo_test": 0,
@@ -44,7 +44,7 @@
     "rand_crop": 0,
     "hflip": 0,
     "skip": 1,
-    "sleep_time_sec": 60
+    "sleep_time_sec": 600
   },
   "val": {
     "version": "test_depth",

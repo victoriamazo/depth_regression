@@ -28,7 +28,7 @@
     "num_iters_for_ckpt": 100,
     "num_iters_for_print": 100,
     "decreasing_lr_epochs": "15,30,45",
-    "load_ckpt": "/media/victoria/d/models/DepthEst/1812Dec26_10-57-13_ResNet_n34_lDS-1,S-0.01,O-0.001_l1e-05/ckpts/ResNet_ckpt.pth.tar",
+    "load_ckpt": "",
     "weight_decay": 0,
     "rand_crop": 1,
     "hflip": 1,
@@ -37,7 +37,7 @@
   },
   "test": {
     "version": "test_depth",
-    "load_ckpt": "/media/victoria/d/models/DepthEst/1812Dec26_10-52-26_ResNet_n34_lDS-1,S-0.01_l1e-05/ckpts/ResNet_ckpt.pth.tar",
+    "load_ckpt": "/media/victoria/d/models/DepthEst/1812Dec26_10-57-13_ResNet_n34_lDS-1,S-0.01,O-0.001_l1e-05/ckpts/ResNet_ckpt.pth.tar",
     "batch_size": 1,
     "gpus": "0",
     "stereo_test": 0,
