@@ -16,10 +16,6 @@ use_cuda = torch.cuda.is_available()
 
 
 class test_depth(Test):
-    '''
-        Returns unsupervised photometric loss (and smooth and explanatory auxiliary losses)
-        and, if pose GT is given, returns pose RMSE metric.
-    '''
     def __init__(self, FLAGS):
         super(test_depth, self).__init__(FLAGS)
         self.height = FLAGS.height

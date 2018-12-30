@@ -23,7 +23,7 @@
     "version": "train_unsup",
     "batch_size": 4,
     "gpus": "1",
-    "lr": 5e-7,
+    "lr": 1e-7,
     "num_epochs": 50,
     "num_iters_for_ckpt": 100,
     "num_iters_for_print": 100,

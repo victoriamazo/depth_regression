@@ -15,19 +15,7 @@ import torch.backends.cudnn as cudnn
 use_cuda = torch.cuda.is_available()
 
 
-
 class train_unsup(Train):
-    '''
-        Unsupervised training of pose and depth with photometric loss for a
-        stereo sequence of video in train and monosequence in test).
-        It can be either divided into snippets of n frames (as in
-        Zhou et al. "Unsupervised Learning of Depth and Ego-Motion from Video"),
-        which are then merged into a global pose sequence, or trained and tested as
-        concatenated target and reference images, then the estimated frame-to-frame
-        camera poses are simply integrated over the entire sequence (Zhan el al.
-        "Unsupervised Learning of Monocular Depth Estimation and Visual Odometry
-        with Deep Feature Reconstruction")
-    '''
     def __init__(self, FLAGS):
         super(train_unsup, self).__init__(FLAGS)
         self.height = FLAGS.height
