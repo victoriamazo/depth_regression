@@ -58,7 +58,7 @@ python3 main.py config/conv.json -m train
 
 ### Results
 
-The following results are from evaluation on KITTY raw dataset (Eigen split):
+The following results are from evaluation on the raw KITTY dataset (Eigen split):
 
 |    Method                 | Abs Rel  |   Sq Rel    |  RMSE    |  RMSE(log)    |  &delta;1    |   &delta;2  |  &delta;3    |
 | :-----------------------: | :----: | :------: | :------: | :------: | :----------: | :----------- | :-------|
