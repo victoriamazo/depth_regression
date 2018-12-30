@@ -1,11 +1,11 @@
 # README
 
 ## Depth Estimation
-Monocular/stereo depth estimation with regression. Trained and tested on the raw KITTY dataset.
+Monocular/stereo depth estimation with regression. Trained and evaluated on the raw KITTY dataset.
 For training, dense depth maps are generated with a [Sparse-to-Dense Network](https://arxiv.org/abs/1709.07492)
-([PyTorch implementation](https://github.com/yxgeee/DepthComplete)). Test runs on sparse 
-depth maps (Eigen split). Two models are available: DispNetS and Resnet autoencoder with 18, 34, 
-50, 101 or 152 layers.
+([PyTorch implementation](https://github.com/yxgeee/DepthComplete)). Evaluation is on sparse 
+depth maps (Eigen split). The following models are available: DispNetS, ResNet autoencoder with 18, 34, 
+50, 101 and 152 layers.
 
 Loss includes:
 - regression loss (reversed Huber loss)
@@ -40,8 +40,10 @@ git clone https://github.com/victoriamazo/depth_regression.git
 
 
 ### Training/testing
-Training and testing as parallel threads (all configuration parameters are 
-explained in "config/config_params.md")
+All configuration parameters are 
+explained in "config/config_params.md".
+
+- Training and testing as parallel threads
 ```
 python3 main.py config/conv.json 
 ```
@@ -58,8 +60,7 @@ python3 main.py config/conv.json -m train
 
 The following results is evaluated on KITTY (Eigen split):
 
-|    Method                 | abs_rel   |   sq_rel    |  rmse    |  log_rmse    |  a1     |   a2   |  a3     |
-| :-----------------------: | :----: | :------: | :------: | :------: | :------: | :----------- | :----|
+|    Method                 | Abs Rel  |   Sq Rel    |  RMSE    |  RMSE(log)    |  &delta;1    |   &delta;2  |  &delta;3    |
+| :-----------------------: | :----: | :------: | :------: | :------: | :----------: | :----------- | :-------|
 | DispNetS (mono)           |0.1850     | 0.6659      |  2.8280  | 0.2193        | 0.7064 | 0.9566 | 0.9909 |
-
 

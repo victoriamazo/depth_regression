@@ -23,17 +23,17 @@
     "version": "train_unsup",
     "batch_size": 4,
     "gpus": "1",
-    "lr": 1e-5,
-    "num_epochs": 100,
-    "num_iters_for_ckpt": 1000,
-    "num_iters_for_print": 1000,
+    "lr": 5e-7,
+    "num_epochs": 50,
+    "num_iters_for_ckpt": 100,
+    "num_iters_for_print": 100,
     "decreasing_lr_epochs": "15,30,45",
     "load_ckpt": "",
     "weight_decay": 0,
     "rand_crop": 1,
     "hflip": 1,
     "shuffle": 1,
-    "exp_description": "num_layers,loss_weights,lr,concat_LR"
+    "exp_description": "num_layers,loss_weights,lr"
   },
   "test": {
     "version": "test_depth",
@@ -45,7 +45,7 @@
     "rand_crop": 0,
     "hflip": 0,
     "skip": 1,
-    "sleep_time_sec": 600
+    "sleep_time_sec": 100
   },
   "val": {
     "version": "test_depth",

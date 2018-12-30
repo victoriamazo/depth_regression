@@ -23,7 +23,7 @@
     "batch_size": 4,
     "gpus": "1",
     "lr": 2e-4,
-    "num_epochs": 100,
+    "num_epochs": 50,
     "num_iters_for_ckpt": 1000,
     "num_iters_for_print": 1000,
     "decreasing_lr_epochs": "15,30,45",
