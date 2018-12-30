@@ -64,3 +64,5 @@ The following results is evaluated on KITTY (Eigen split):
 | :-----------------------: | :----: | :------: | :------: | :------: | :----------: | :----------- | :-------|
 | DispNetS (mono)           |0.1850     | 0.6659      |  2.8280  | 0.2193        | 0.7064 | 0.9566 | 0.9909 |
 
+Qualitative results:
+![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/results_visualization.png "PBT test accuracy") 

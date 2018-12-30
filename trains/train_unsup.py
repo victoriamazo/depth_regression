@@ -34,8 +34,6 @@ class train_unsup(Train):
             self.decreasing_lr_epochs = list(map(int, FLAGS.decreasing_lr_epochs.split(',')))
         self.weight_decay = FLAGS.weight_decay
         self.num_iters_for_print = FLAGS.num_iters_for_print
-        if hasattr(FLAGS, 'seed'):
-            self.seed = FLAGS.seed
         self.debug = FLAGS.debug
         if not self.debug:
             save_path = os.path.join('tensorboard', self.train_dir.split('/')[-1])
@@ -52,11 +50,12 @@ class train_unsup(Train):
         self.results_table_path = os.path.join(self.train_dir, 'results.csv')
         self.loss_summary_path = os.path.join(self.train_dir, 'loss_summary.csv')
         self.loss_full_path = os.path.join(self.train_dir, 'loss_full.csv')
+        self.loss_weights_dict, self.loss_dict = make_loss_dict(FLAGS.loss_weights)
+        if hasattr(FLAGS, 'seed'):
+            self.seed = FLAGS.seed
         torch.manual_seed(self.seed)
         if use_cuda:
             torch.cuda.manual_seed(self.seed)
-        self.loss_weights_dict, self.loss_dict = make_loss_dict(FLAGS.loss_weights)
-
         self.concat_LR, self.disp_norm, self.upscaling, self.edge_aware = False, False, False, False
         if hasattr(FLAGS, 'concat_LR') and FLAGS.concat_LR:
             self.concat_LR = True
