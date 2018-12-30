@@ -36,8 +36,8 @@ Training and testing were performed on Ununtu 16.04, Cuda 8.0 and 1080Ti GPU.
 git clone https://github.com/victoriamazo/depth_regression.git
 ```
 - Download [KITTY raw dataset](http://www.cvlibs.net/datasets/kitti/raw_data.php)
-- Download a pretrained DispNetS model (mono) [here]()
-- Download a pretrained ResNet50 model (mono) [here]()
+- Download a pretrained DispNetS model (mono) [here](https://drive.google.com/open?id=1fgBdfvdG7--c73KV-BwaAxaHNRQjxP5L)
+
 
 ### Training/testing
 Training and testing as parallel threads
@@ -84,5 +84,13 @@ images
 - _best_criteria_depth_ - criteria for saving best model: "rmse", "abs_rel", "sq_rel", "log_rmse", 
 "a1", "a2" or "a3"
 - _sleep_time_sec_ - waiting time for running a test (in sec) in a train/test paralellel mode 
+
+
+## <a name="experiments"></a>Experiments
+The following results is evaluated on KITTY (Eigen split):
+
+|    Method                 | abs_rel   |   sq_rel    |  rmse    |  log_rmse    |  a1     |   a2   |  a3     |
+| :-----------------------: | :----: | :------: | :------: | :------: | :------: | :----------- | :----|
+| DispNetS (mono)           |0.1850     | 0.6659      |  2.8280  | 0.2193        | 0.7064 | 0.9566 | 0.9909 |
 
 

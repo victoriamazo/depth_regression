@@ -117,7 +117,7 @@ class test_depth(Test):
             depth_metrics[:, i] = abs_rel, sq_rel, rmse, rmse_log, a1, a2, a3
 
             # save every nth image concatenated with its outputs (depth visualization):
-            if i%100 == 0:
+            if i%300 == 0:
                 save_concat_img_results(var_dict_t, disp_l, self.visualization_test_dir, self.n_iter,
                                         filenames_tgt[i])
 

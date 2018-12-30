@@ -23,7 +23,7 @@ class ResNet(nn.Module):
             self.alpha = 10  # as in Zhou with plain smoothing loss
         self.beta = 0.01
         if FLAGS.stereo and hasattr(FLAGS, 'concat_LR') and FLAGS.concat_LR:
-            print('input to DispNet is concatenated L and R images, output - L and R disparities')
+            print('input to ResNet is concatenated L and R images, output - L and R disparities')
             in_channels *= 2
             out_channels *= 2
 
