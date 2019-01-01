@@ -22,11 +22,11 @@
   "train": {
     "version": "train_unsup",
     "batch_size": 4,
-    "gpus": "1",
-    "lr": 1e-7,
+    "gpus": "0",
+    "lr": 1e-4,
     "num_epochs": 50,
-    "num_iters_for_ckpt": 100,
-    "num_iters_for_print": 100,
+    "num_iters_for_ckpt": 10,
+    "num_iters_for_print": 10,
     "decreasing_lr_epochs": "15,30,45",
     "load_ckpt": "",
     "weight_decay": 0,
@@ -37,15 +37,15 @@
   },
   "test": {
     "version": "test_depth",
-    "load_ckpt": "/media/victoria/d/models/DepthEst/1812Dec27_12-49-14_ResNet_n34_lDS-1,DC-1,S-0.01_l1e-05_c1/ckpts/ResNet_ckpt.pth.tar",
+    "load_ckpt": "/media/victoria/d/models/DepthEst/1812Dec30_22-11-12_ResNet_n34_lDS-1,S-0.01_l0.0001/ckpts/ResNet_ckpt.pth.tar",
     "batch_size": 1,
-    "gpus": "0",
+    "gpus": "1",
     "stereo_test": 0,
     "best_criteria_depth": "log_rmse",
     "rand_crop": 0,
     "hflip": 0,
     "skip": 1,
-    "sleep_time_sec": 100
+    "sleep_time_sec": 60
   },
   "val": {
     "version": "test_depth",

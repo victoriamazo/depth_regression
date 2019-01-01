@@ -14,8 +14,8 @@ class ResNet(nn.Module):
             raise RuntimeError('Only 18, 34, 50, 101, and 152 layer model are defined for ResNet. Got {}'.format(layers))
 
         super(ResNet, self).__init__()
-        if FLAGS.load_ckpt != '':
-            pretrained=False
+        # if FLAGS.load_ckpt != '':
+        pretrained=False
         pretrained_model = torchvision.models.__dict__['resnet{}'.format(layers)](pretrained=pretrained)
 
         self.alpha = 0.3  #as in Godard with edge-aware smoothing loss

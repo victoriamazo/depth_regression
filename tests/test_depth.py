@@ -64,6 +64,7 @@ class test_depth(Test):
         self.dataloader, self.num_samples = DataLoader.dataloader_builder(FLAGS.data_loader, FLAGS, 'test',
                                                                      parent_class=data.Dataset)
 
+
     def _test(self, models):
         one_iter_time = AverageMeter()                         # time to execute one iteration
         losses = AverageMeter(i=len(self.loss_dict) + 1, precision=4)

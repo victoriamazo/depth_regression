@@ -37,7 +37,7 @@ git clone https://github.com/victoriamazo/depth_regression.git
 ```
 - Download [KITTY raw dataset](http://www.cvlibs.net/datasets/kitti/raw_data.php)
 - Download a pretrained DispNetS model (mono) [here](https://drive.google.com/open?id=1fgBdfvdG7--c73KV-BwaAxaHNRQjxP5L)
-
+- Download a pretrained ResNet34 model (mono) [here](https://drive.google.com/open?id=1586WoEmKay-EGo1aX5Qs2C0h7ws6PEPS)
 
 ### Training/testing
 All configuration parameters are 
@@ -63,6 +63,23 @@ The following results are from evaluation on the raw KITTY dataset (Eigen split)
 |    Method                 | Abs Rel  |   Sq Rel    |  RMSE    |  RMSE(log)    |  &delta;1    |   &delta;2  |  &delta;3    |
 | :-----------------------: | :----: | :------: | :------: | :------: | :----------: | :----------- | :-------|
 | DispNetS (mono)           |0.1850     | 0.6659      |  2.8280  | 0.2193        | 0.7064 | 0.9566 | 0.9909 |
+| ResNet (mono)             |0.2665     | 1.1139      |  3.6226  | 0.3720        | 0.4883 | 0.8079 | 0.9120 |
 
-Qualitative results:
-![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/results_visualization.png "PBT test accuracy") 
+
+##### DispnetS
+![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/DispNetS/img_comb_143000_0000000000.jpg "DispNetS") 
+![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/DispNetS/img_comb_143000_0000000005.jpg "DispNetS") 
+![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/DispNetS/img_comb_143000_0000000006.jpg "DispNetS") 
+![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/DispNetS/img_comb_143000_0000000009.jpg "DispNetS") 
+![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/DispNetS/img_comb_143000_0000000010.jpg "DispNetS") 
+![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/DispNetS/img_comb_143000_0000000011.jpg "DispNetS") 
+![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/DispNetS/img_comb_143000_0000003992.jpg "DispNetS") 
+
+##### ResNet34
+![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/ResNet34/img_comb_143000_0000000000.jpg "ResNet34") 
+![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/ResNet34/img_comb_143000_0000000005.jpg "ResNet34") 
+![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/ResNet34/img_comb_143000_0000000006.jpg "ResNet34") 
+![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/ResNet34/img_comb_143000_0000000009.jpg "ResNet34") 
+![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/ResNet34/img_comb_143000_0000000010.jpg "ResNet34") 
+![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/ResNet34/img_comb_143000_0000000011.jpg "ResNet34") 
+![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/ResNet34/img_comb_143000_0000003992.jpg "ResNet34") 

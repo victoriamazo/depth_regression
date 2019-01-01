@@ -568,10 +568,10 @@ def write_summary_to_csv(loss_summary_path, results_table_path, n_iter, epoch, t
 
 def save_concat_img_results(var_dict_t, disp, visualization_test_dir, n_iter, filename_tgt_cut):
     images = [tensor2array(var_dict_t['tgt_img_l_cpu'][0])]
-    images.append(tensor2array(disp.data[0].cpu(), max_value=None, colormap='bone'))
+    images.append(normalize_depth_for_display(var_dict_t['gt_depth_r'].data[0].cpu().numpy()))
+    # images.append(tensor2array(disp.data[0].cpu(), max_value=None, colormap='bone'))
     depth = 1.0 / (disp.data[0].cpu().squeeze().numpy() + 1e-6)
     images.append(normalize_depth_for_display(depth))
-    images.append(normalize_depth_for_display(var_dict_t['gt_depth_r'].data[0].cpu().numpy()))
     img_names = ['trg', 'disp', 'depth', 'gt_depth']
     save_path = os.path.join(visualization_test_dir, 'img_comb_{}_{}.jpg'.format(n_iter, filename_tgt_cut[0]))
     save_concat_imgs(images, img_names, save_path)
