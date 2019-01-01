@@ -68,8 +68,7 @@ The following results are from evaluation on the raw KITTY dataset (Eigen split)
 
 Qualitative results:
 
-|    Input                 | Ground Truth  |   DispnetS    |  
-| :-----------------------: | :----: | :------: |
+<pre>          Input                          Ground Truth                            DispnetS      </pre>
 ![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/DispNetS/img_comb_143000_0000000000.jpg "DispNetS") 
 ![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/DispNetS/img_comb_143000_0000000005.jpg "DispNetS") 
 ![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/DispNetS/img_comb_143000_0000000006.jpg "DispNetS") 
@@ -78,8 +77,8 @@ Qualitative results:
 ![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/DispNetS/img_comb_143000_0000000011.jpg "DispNetS") 
 ![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/DispNetS/img_comb_143000_0000003992.jpg "DispNetS") 
 
-|    Input                 | Ground Truth  |   ResNet34    |  
-| :-----------------------: | :----: | :------: |
+
+<pre>          Input                          Ground Truth                            DispnetS      </pre>
 ![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/ResNet34/img_comb_262000_0000000000.jpg "ResNet34") 
 ![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/ResNet34/img_comb_262000_0000000005.jpg "ResNet34") 
 ![alt-text-1](https://github.com/victoriamazo/depth_regression/blob/master/images/ResNet34/img_comb_262000_0000000006.jpg "ResNet34") 
