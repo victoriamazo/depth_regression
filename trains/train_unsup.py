@@ -90,6 +90,7 @@ class train_unsup(Train):
         for i, var_dict_np in enumerate(self.dataloader):
             # convert numpy input to pytorch tensors
             var_dict_t, filenames_tgt = convert_to_tensors(var_dict_np, filenames_tgt, self.loss_params_dict, use_cuda)
+
             # compute output
             disp_input = var_dict_t['tgt_img_l']
             if self.stereo and self.concat_LR:

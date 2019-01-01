@@ -24,14 +24,14 @@
     "gpus": "1",
     "lr": 2e-4,
     "num_epochs": 50,
-    "num_iters_for_ckpt": 1000,
-    "num_iters_for_print": 1000,
+    "num_iters_for_ckpt": 100,
+    "num_iters_for_print": 100,
     "decreasing_lr_epochs": "15,30,45",
     "load_ckpt": "",
     "weight_decay": 0,
     "rand_crop": 1,
     "hflip": 1,
-    "shuffle": 1,
+    "shuffle": 0,
     "exp_description": "loss_weights,lr"
   },
   "test": {
@@ -44,7 +44,7 @@
     "rand_crop": 0,
     "hflip": 0,
     "skip": 1,
-    "sleep_time_sec": 600
+    "sleep_time_sec": 60
   },
   "val": {
     "version": "test_depth",
