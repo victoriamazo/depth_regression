@@ -40,7 +40,7 @@ git clone https://github.com/victoriamazo/depth_regression.git
 - Download a pretrained ResNet34 model (mono) [here](https://drive.google.com/open?id=1586WoEmKay-EGo1aX5Qs2C0h7ws6PEPS)
 
 ### Demo
-To run demo on a single image (downloaded model is expected to be in the 'ckpts' directory):
+To run demo on a single image (a downloaded model is expected to be in the 'ckpts' directory):
 ```
 python demo.py ckpts/DispNetS_ckpt_best.pth.tar --arch DispNetS --image images/000011.png
 ```
