@@ -44,7 +44,7 @@ To run demo on a single image (downloaded model is expected to be in the 'ckpts'
 ```
 python demo.py ckpts/DispNetS_ckpt_best.pth.tar --arch DispNetS --image images/000011.png
 ```
-To run Resnet model, indicate ```--arch ResNet``` and ```--num_layers 34```.
+To run the ResNet model, indicate ```--arch ResNet``` and ```--num_layers 34```.
 
 ### Training/testing
 All configuration parameters are 
