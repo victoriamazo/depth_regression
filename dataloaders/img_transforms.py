@@ -101,14 +101,22 @@ class Resize(object):
     def __call__(self, img1, img2=None, *args):
         assert img2 is None or img1.size == img2.size
 
+        img1 = Image.open(img1)
+        if img2 is not None:
+            img2 = Image.open(img2)
         w, h = img1.size
         resize_h, resize_w = self.size
         if w == resize_w and h == resize_h:
             return (img1, img2, args)
 
-        results = [img1.resize(self.size, PIL.Image.ANTIALIAS)]
-        if img2 is not None:
-            results.append(img2.resize(self.size, PIL.Image.ANTIALIAS))
+        if isinstance(img1, np.ndarray):
+            results = [imresize(img1, (resize_h, resize_w))]
+            if img2 is not None:
+                results.append(imresize(img2, (resize_h, resize_w)))
+        else:
+            results = [img1.resize(self.size, PIL.Image.ANTIALIAS)]
+            if img2 is not None:
+                results.append(img2.resize(self.size, PIL.Image.ANTIALIAS))
 
         results.extend(args)
         return results

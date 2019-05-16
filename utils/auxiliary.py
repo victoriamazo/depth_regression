@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 from path import Path
 from scipy.misc import imread
-from wand.image import Image
+# from wand.image import Image
 from shutil import copyfile
 
 from models.model_builder import Model

@@ -39,6 +39,13 @@ git clone https://github.com/victoriamazo/depth_regression.git
 - Download a pretrained DispNetS model (mono) [here](https://drive.google.com/open?id=1fgBdfvdG7--c73KV-BwaAxaHNRQjxP5L)
 - Download a pretrained ResNet34 model (mono) [here](https://drive.google.com/open?id=1586WoEmKay-EGo1aX5Qs2C0h7ws6PEPS)
 
+### Demo
+To run demo on a single image (downloaded model is expected to be in the 'ckpts' directory):
+```
+python demo.py ckpts/DispNetS_ckpt_best.pth.tar --arch DispNetS --image images/000011.png
+```
+To run Resnet model, indicate ```--arch ResNet``` and ```--num_layers 34```.
+
 ### Training/testing
 All configuration parameters are 
 explained in "config/config_params.md".

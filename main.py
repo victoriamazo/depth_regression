@@ -10,11 +10,11 @@ Required to update bashrc (once):
 
 Examples:
 * train and test as separate processes:
-    config/poseest/KITTY_odom_zhan.json
+    python main.py config/poseest/KITTY_odom_zhan.json
 * serially:
-    config/poseest/KITTY_odom_zhan.json -m train
-    config/poseest/KITTY_odom_zhan.json -m test
-    config/poseest/KITTY_odom_zhan.json -m traintest
+    python main.py config/poseest/KITTY_odom_zhan.json -m train
+    python main.py config/poseest/KITTY_odom_zhan.json -m test
+    python main.py config/poseest/KITTY_odom_zhan.json -m traintest
 
 By adding '--debug', no tensorboard will start
 '''
